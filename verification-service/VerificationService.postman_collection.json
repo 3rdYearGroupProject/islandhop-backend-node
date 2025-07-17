@@ -1,0 +1,127 @@
+{
+  "info": {
+    "_postman_id": "12345678-1234-1234-1234-1234567890ab",
+    "name": "Verification Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Add Guide Certificate",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"guide@example.com\",\n  \"certificate_issuer\": \"Issuer Name\",\n  \"issue_date\": \"2025-01-01\",\n  \"expiry_date\": \"2026-01-01\",\n  \"verification_number\": \"12345\",\n  \"certificate_picture\": \"base64encodedstring==\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8060/guides/certificates",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8060",
+          "path": ["guides", "certificates"]
+        }
+      }
+    },
+    {
+      "name": "Get All Guide Certificates",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8060/guides/certificates",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8060",
+          "path": ["guides", "certificates"]
+        }
+      }
+    },
+    {
+      "name": "Update Guide Certificate",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"APPROVED\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8060/guides/certificates/:id",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8060",
+          "path": ["guides", "certificates", ":id"]
+        }
+      }
+    },
+    {
+      "name": "Add Driver",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"driver@example.com\",\n  \"date_of_birth\": \"1990-01-01\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8060/drivers",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8060",
+          "path": ["drivers"]
+        }
+      }
+    },
+    {
+      "name": "Get All Drivers",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8060/drivers",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8060",
+          "path": ["drivers"]
+        }
+      }
+    },
+    {
+      "name": "Update Driver",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"driving_license_verified\": 1\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8060/drivers/:id",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8060",
+          "path": ["drivers", ":id"]
+        }
+      }
+    }
+  ]
+}

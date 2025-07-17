@@ -1,0 +1,9 @@
+[2025-07-17T12:14:29.280Z] Verification service started.
+[2025-07-17T12:17:38.670Z] Verification service started.
+[2025-07-17T12:19:33.270Z] Verification service started.
+[2025-07-17T12:19:42.503Z] Verification service started.
+[2025-07-17T12:19:49.453Z] Verification service started.
+[2025-07-17T12:20:53.802Z] Verification service started.
+[2025-07-17T12:21:12.771Z] Verification service started.
+2025-07-17T12:21:19.581Z - Fetched drivers with filters: {}
+[2025-07-17T12:21:31.386Z] Verification service started.
