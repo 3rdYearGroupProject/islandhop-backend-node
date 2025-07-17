@@ -3,8 +3,25 @@ const express = require('express');
 const winston = require('winston');
 const { Pool } = require('pg');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
+
+// Enable CORS for all routes (MUST be before routes)
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'] // Allowed headers
+}));
+
+// Explicitly set CORS headers for all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Allowed methods
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Allowed headers
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 
 // Logger setup

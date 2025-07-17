@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+log.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Build
+/dist
+/build
+
+# Misc
+coverage/
+
+# Postman
+*.postman_collection.json
