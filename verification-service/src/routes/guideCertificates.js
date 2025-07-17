@@ -57,11 +57,20 @@ module.exports = (pool, logger) => {
       let params = [];
       if (status) {
         query += ' WHERE status = $1';
-        params.push(status);
+        params.push(status); // Ensure status is passed as a parameter
       }
       const result = await pool.query(query, params);
+
+      // Convert certificate_picture to base64 string
+      const certificates = result.rows.map((row) => {
+        if (row.certificate_picture) {
+          row.certificate_picture = row.certificate_picture.toString('base64');
+        }
+        return row;
+      });
+
       logOperation(`Fetched guide certificates with status: ${status || 'ALL'}`);
-      res.json(result.rows);
+      res.json(certificates);
     } catch (err) {
       logOperation(`Error fetching guide certificates: ${err.message}`);
       logger.error(err);
@@ -72,16 +81,22 @@ module.exports = (pool, logger) => {
   // PUT /guides/certificates/:id
   router.put('/:id', async (req, res, next) => {
     try {
-      const { status } = req.body;
+      const { status, certificate_issuer, issue_date, expiry_date } = req.body;
+
       if (!['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
         return res.status(400).json({ error: 'Invalid status' });
       }
+
       const { id } = req.params;
       const result = await pool.query(
-        'UPDATE guide_certificates SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-        [status, id]
+        `UPDATE guide_certificates 
+         SET status = $1, certificate_issuer = $2, issue_date = $3, expiry_date = $4, updated_at = NOW() 
+         WHERE id = $5 RETURNING *`,
+        [status, certificate_issuer, issue_date, expiry_date, id]
       );
+
       if (result.rowCount === 0) return res.status(404).json({ error: 'Certificate not found' });
+
       res.json(result.rows[0]);
     } catch (err) {
       logger.error(err);
