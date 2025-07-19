@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const registerRoute = require('./routes/register');
+const config = require('./config');
 
 const app = express();
 app.use(express.json());
@@ -12,13 +13,14 @@ const pool = new Pool({
   port: process.env.DB_PORT,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE
+  database: process.env.DB_DATABASE,
+  ssl: { rejectUnauthorized: false } // Enable SSL
 });
 
 // Routes
 app.use('/register-support-agent', registerRoute(pool));
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || config.PORT;
 app.listen(PORT, () => {
   console.log(`Support Agent Service running on port ${PORT}`);
 });
