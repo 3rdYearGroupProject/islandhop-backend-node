@@ -4,8 +4,10 @@ const admin = require('../firebase');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const path = require('path');
+const { parsePhoneNumberFromString } = require('libphonenumber-js');
 
-const DEFAULT_AVATAR_URL = 'image.png';
+const DEFAULT_AVATAR_URL = path.join(__dirname, '/image.png');
 
 module.exports = (pool) => {
   const router = express.Router();
@@ -23,22 +25,8 @@ module.exports = (pool) => {
       console.log('Starting transaction');
       await client.query('BEGIN');
 
-      // Create Firebase user
-      let firebaseUser;
-      try {
-        console.log('Creating Firebase user');
-        firebaseUser = await admin.auth().createUser({ email });
-        console.log('Firebase user created:', firebaseUser);
-      } catch (error) {
-        console.error('Error creating Firebase user:', error);
-        if (error.code === 'auth/email-already-exists') {
-          return res.status(400).json({ success: false, message: 'Email already exists in Firebase' });
-        }
-        throw error;
-      }
-
-      // Use Firebase UID as the account ID
-      const accountId = firebaseUser.uid;
+      // Generate a valid UUID for the account ID
+      const accountId = uuidv4();
 
       // Generate UUID for the profile
       const profileId = uuidv4();
@@ -56,12 +44,27 @@ module.exports = (pool) => {
       await client.query(
         `INSERT INTO support_profiles (id, address, contact_no, email, first_name, last_name, profile_completion, profile_picture, permission)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [profileId, address, contact_no, email, first_name, last_name, 0, profile_picture, permission]
+        [profileId, address, contact_no, email, first_name, last_name, 1, profile_picture, permission]
       );
 
       // Commit transaction
       console.log('Committing transaction');
       await client.query('COMMIT');
+
+      // Create Firebase user only after successful database operations
+      console.log('Creating Firebase user');
+      const phoneNumber = parsePhoneNumberFromString(contact_no, 'LK'); // Use 'LK' for Sri Lanka
+      if (!phoneNumber || !phoneNumber.isValid()) {
+        return res.status(400).json({ success: false, message: 'Invalid phone number format' });
+      }
+      const formattedPhoneNumber = phoneNumber.number;
+
+      firebaseUser = await admin.auth().createUser({
+        email,
+        displayName: `${first_name} ${last_name}`,
+        phoneNumber: formattedPhoneNumber
+      });
+      console.log('Firebase user created:', firebaseUser);
 
       // Generate a secure temporary password
       const temporaryPassword = crypto.randomBytes(8).toString('hex');
