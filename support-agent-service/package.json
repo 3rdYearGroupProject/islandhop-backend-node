@@ -12,9 +12,11 @@
     "express": "^4.21.2",
     "firebase-admin": "^11.11.1",
     "libphonenumber-js": "^1.12.10",
+    "morgan": "^1.10.1",
     "nodemailer": "^7.0.5",
     "pg": "^8.11.5",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
