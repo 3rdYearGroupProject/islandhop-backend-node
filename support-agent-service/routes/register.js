@@ -6,13 +6,32 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const path = require('path');
 const { parsePhoneNumberFromString } = require('libphonenumber-js');
+const morgan = require('morgan');
+const winston = require('winston');
 
 const DEFAULT_AVATAR_URL = path.join(__dirname, '/image.png');
+
+// Configure Winston logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
 
 module.exports = (pool) => {
   const router = express.Router();
 
+  // Use Morgan for HTTP request logging
+  router.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
+
   router.post('/', async (req, res) => {
+    logger.info('POST / - Register support agent', { body: req.body });
     const client = await pool.connect();
     const { email, first_name, last_name, address, contact_no, permission } = req.body;
 
@@ -106,8 +125,10 @@ Support Team`
       console.log('Email sent successfully');
 
       console.log('Support agent registered successfully');
+      logger.info('Support agent registered successfully', { email });
       res.status(201).json({ success: true, message: 'Support agent registered successfully' });
     } catch (error) {
+      logger.error('Error registering support agent', { error });
       console.error('Error registering support agent:', error);
       await client.query('ROLLBACK');
       res.status(500).json({ success: false, message: 'Internal Server Error' });
