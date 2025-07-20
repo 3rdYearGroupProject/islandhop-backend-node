@@ -3,9 +3,17 @@ const express = require('express');
 const { Pool } = require('pg');
 const registerRoute = require('./routes/register');
 const config = require('./config');
+const cors = require('cors');
 
 const app = express();
 app.use(express.json());
+
+// Enable CORS for specific origin
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Database connection
 const pool = new Pool({
