@@ -1,34 +1,10 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
-const winston = require('winston');
 const Joi = require('joi');
 const { v4: uuidv4 } = require('uuid');
+const { createTransporter, logger } = require('../email');
+const config = require('../config');
 
 const router = express.Router();
-
-// Logger
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'email-service' },
-  transports: [
-    new winston.transports.Console()
-  ]
-});
-
-// Email transporter configuration
-const createTransporter = () => {
-  return nodemailer.createTransporter({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
-    }
-  });
-};
 
 // Validation schemas
 const emailSchema = Joi.object({
@@ -116,7 +92,7 @@ router.post('/send', async (req, res) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: from || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: from || config.EMAIL_FROM || config.EMAIL_USER,
       to,
       subject,
       text,
@@ -168,7 +144,7 @@ router.post('/send-bulk', async (req, res) => {
     for (const recipient of recipients) {
       try {
         const mailOptions = {
-          from: from || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+          from: from || config.EMAIL_FROM || config.EMAIL_USER,
           to: recipient,
           subject,
           text,
@@ -238,8 +214,8 @@ router.post('/contact', async (req, res) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: process.env.CONTACT_EMAIL || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
+      to: config.CONTACT_EMAIL || config.EMAIL_USER,
       subject: `Contact Form: ${subject}`,
       html: `
         <h3>New Contact Form Submission</h3>
@@ -342,7 +318,7 @@ router.post('/welcome', async (req, res) => {
     };
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: email,
       subject: welcomeMessages[userType].subject,
       html: welcomeMessages[userType].html
@@ -387,7 +363,7 @@ router.post('/verify', async (req, res) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: email,
       subject: 'Please verify your email address',
       html: `
@@ -444,7 +420,7 @@ router.post('/verification', async (req, res) => {
     };
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: email,
       subject: `Verify Your ${userTypeDisplayNames[userType]} Account - IslandHop`,
       html: `
@@ -507,7 +483,7 @@ router.post('/request-pool', async (req, res) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: poolOwnerEmail,
       subject: `New ${requestType} request for ${poolName}`,
       html: `
@@ -561,7 +537,7 @@ router.post('/pool-request', async (req, res) => {
 
     // Email to pool owner
     const ownerMailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: poolOwnerEmail,
       subject: `New ${requestTypeDisplay} Request - ${poolName}`,
       html: `
@@ -588,7 +564,7 @@ router.post('/pool-request', async (req, res) => {
 
     // Email confirmation to requester
     const requesterMailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: requesterEmail,
       subject: `Pool Request Submitted - ${poolName}`,
       html: `
@@ -660,7 +636,7 @@ router.post('/service-request', async (req, res) => {
 
     // Email to service provider
     const providerMailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: serviceProviderEmail,
       subject: `New ${serviceTypeDisplayNames[serviceType]} Service Request`,
       html: `
@@ -689,7 +665,7 @@ router.post('/service-request', async (req, res) => {
 
     // Email confirmation to requestor
     const requestorMailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: requestorEmail,
       subject: `Service Request Submitted - ${serviceTypeDisplayNames[serviceType]}`,
       html: `
@@ -756,8 +732,8 @@ router.post('/lost-item', async (req, res) => {
 
     // Email to admin/support team
     const adminMailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: adminEmail || process.env.CONTACT_EMAIL || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
+      to: adminEmail || config.CONTACT_EMAIL || config.EMAIL_USER,
       subject: `Lost Item Report - ${itemDescription}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -785,7 +761,7 @@ router.post('/lost-item', async (req, res) => {
 
     // Confirmation email to reporter
     const reporterMailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: config.EMAIL_FROM || config.EMAIL_USER,
       to: reporterEmail,
       subject: `Lost Item Report Submitted - ${itemDescription}`,
       html: `
