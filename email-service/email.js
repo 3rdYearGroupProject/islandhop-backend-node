@@ -22,7 +22,7 @@ const logger = winston.createLogger({
 
 // Email transporter configuration
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     service: config.EMAIL_SERVICE,
     auth: {
       user: config.EMAIL_USER,
