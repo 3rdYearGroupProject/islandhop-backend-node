@@ -29,3 +29,10 @@
 2025-07-19T08:08:35.012Z - Fetched drivers with filters: {}
 2025-07-19T08:10:17.201Z - Fetched drivers with filters: {}
 [2025-07-19T17:16:51.244Z] Verification service started on port 8061.
+[2025-08-03T02:11:26.231Z] Verification service started.
+[2025-08-03T02:14:25.178Z] Incoming request: GET /?name=John&age=35
+[2025-08-03T02:16:32.986Z] Incoming request: GET /?name=anura
+[2025-08-03T02:16:37.460Z] Incoming request: GET /?name=anura
+[2025-08-03T02:19:06.115Z] Incoming request: PUT /?id=07bbfad3-e25f-4b8b-b1d8-60e83hjesdhjhc958b8
+[2025-08-03T02:20:44.301Z] Incoming request: PUT /drivers/?id=07bbfad3-e25f-4b8b-b1d8-60e83hjesdhjhc958b8
+2025-08-03T02:20:57.461Z - Fetched drivers with filters: {}
