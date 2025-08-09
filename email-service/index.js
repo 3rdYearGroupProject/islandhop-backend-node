@@ -26,7 +26,7 @@ app.use(morgan('combined', {
 const emailRoutes = require('./routes/email');
 
 // Routes
-app.use('/api/v1/email', emailRoutes);
+app.use('/api/email', emailRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -52,6 +52,61 @@ app.get('/test-config', async (req, res) => {
       status: 'ERROR',
       message: 'Failed to test email configuration',
       error: error.message
+    });
+  }
+});
+
+// Test send email to specific address
+app.post('/send-test-email', async (req, res) => {
+  try {
+    const { to } = req.body;
+    
+    if (!to) {
+      return res.status(400).json({
+        error: 'Email address required',
+        message: 'Please provide "to" field with email address'
+      });
+    }
+
+    const { createTransporter } = require('./email');
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: config.EMAIL_FROM || config.EMAIL_USER,
+      to: to,
+      subject: 'Test Email from IslandHop Email Service',
+      html: `
+        <h2>🎉 Email Service Test</h2>
+        <p>Congratulations! Your IslandHop email service is working perfectly.</p>
+        <p><strong>Service Details:</strong></p>
+        <ul>
+          <li>Service: IslandHop Email Microservice</li>
+          <li>Port: ${config.PORT}</li>
+          <li>Time: ${new Date().toISOString()}</li>
+        </ul>
+        <p>This email was sent successfully! 📧✅</p>
+      `,
+      text: `Email Service Test - Your IslandHop email service is working! Sent at ${new Date().toISOString()}`
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+
+    logger.info('Test email sent successfully', {
+      to: to,
+      messageId: result.messageId
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Test email sent successfully to ${to}`,
+      messageId: result.messageId
+    });
+
+  } catch (error) {
+    logger.error('Failed to send test email', error);
+    res.status(500).json({
+      error: 'Failed to send test email',
+      message: error.message
     });
   }
 });
