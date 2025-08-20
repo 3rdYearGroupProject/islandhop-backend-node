@@ -1,8 +1,9 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import touristRouter from './routes/touristRoutes.js';
+import lostItemsRouter from './routes/lostItemsRoutes.js';
+import {connectDatabases} from './db.js';
 
 dotenv.config();
 const app = express();
@@ -16,11 +17,26 @@ app.use(cors(
 ));
 app.use(express.json());
 
-app.use('/tourist', touristRouter);
+// Initialize database connections and store them globally
+let dbConnections = null;
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB error', err));
+async function initializeApp() {
+  try {
+    dbConnections = await connectDatabases();
+    console.log('✅ Database connections established');
+    
+    // Make database connections available globally
+    app.locals.dbConnections = dbConnections;
+    
+    app.use('/tourist', touristRouter);
+    app.use('/lost-items', lostItemsRouter);
+  } catch (error) {
+    console.error('❌ Failed to initialize database connections:', error);
+    process.exit(1);
+  }
+}
+
+initializeApp();
 
 app.get('/', (req, res) => {
   res.send('Service is running');
