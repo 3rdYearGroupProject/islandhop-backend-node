@@ -1,0 +1,174 @@
+🔍 Environment variables loaded:
+PORT: 3001
+GOOGLE_MAPS_API_KEY: AIzaSyCCk3...
+USE_MOCK_DATA: true
+[GoogleMaps] API Key configured: AIzaSyCCk3...
+🚀 Starting server with MOCK DATA (no database connection)
+✅ Route Service is running on port 3001 with mock data
+📍 Health check: http://localhost:3001/health
+🧪 Demo endpoint: http://localhost:3001/trips/demo/sample-trip
+🗺️  Optimized route: http://localhost:3001/trips/any-id/optimized-route
+[ENHANCED] Getting complete Sri Lankan route coordinates for trip: test-trip
+[ENHANCED] Getting optimized route for trip: test-trip
+[ENHANCED] Fetching real route from Google Maps...
+[ENHANCED] Calculating real Google Maps route connecting ALL destinations
+[ENHANCED] 🗺️ Calculating complete Sri Lankan itinerary route:
+  - Origin: Colombo (6.9271, 79.8612)
+  - Total destinations: 7
+  - Stop 1: Sambodhi Pagoda Temple (attraction)
+  - Stop 2: Sigiriya Rock View from Sigiriya Tank (attraction)
+  - Stop 3: Sri Dalada Museum (attraction)
+  - Stop 4: Kandy Museum 1 (attraction)
+  - Stop 5: Waters Edge - Sri Lanka (restaurant)
+  - Stop 6: Cinnamon Lakeside Colombo (hotel)
+  - Stop 7: Waters Edge - Sri Lanka (restaurant)
+[ENHANCED] 📍 Creating multi-stop route through Sri Lanka:
+  - Waypoints: 6 intermediate stops
+  - This will connect ALL attractions in your itinerary
+[GOOGLE_MAPS] 🗺️ Calculating multi-stop Sri Lankan route:
+  Origin: 6.9271,79.8612
+  Waypoints: 6 stops
+  Destination: 6.905807100000001,79.9117206
+  Route: 6.9383932,79.8420285 → 7.950907399999999,80.75934370000002 → 7.293460899999999,80.64151059999999 → 7.274446450380407,80.6777157861869 → 6.905807100000001,79.9117206 → 6.929170399999999,79.8492962
+[GOOGLE_MAPS] ✅ Multi-stop route calculated successfully:
+  - Total Distance: 446 km
+  - Total Duration: 11h 8m
+  - Legs: 7 segments
+  - Waypoints: 241 points following actual Sri Lankan roads
+[ENHANCED] ✅ Complete itinerary route calculated:
+  - Distance: 446 km
+  - Duration: 11h 8m
+  - Legs: 7 route segments
+  - Connects: Colombo → Sambodhi Pagoda Temple → Sigiriya Rock View from Sigiriya Tank → Sri Dalada Museum → Kandy Museum 1 → Waters Edge - Sri Lanka → Cinnamon Lakeside Colombo → Waters Edge - Sri Lanka
+[ENHANCED] ✅ Real route generated with 241 waypoints
+[ENHANCED] Getting complete Sri Lankan route coordinates for trip: test-trip
+[ENHANCED] Getting optimized route for trip: test-trip
+[ENHANCED] Fetching real route from Google Maps...
+[ENHANCED] Calculating real Google Maps route connecting ALL destinations
+[ENHANCED] 🗺️ Calculating complete Sri Lankan itinerary route:
+  - Origin: Colombo (6.9271, 79.8612)
+  - Total destinations: 7
+  - Stop 1: Sambodhi Pagoda Temple (attraction)
+  - Stop 2: Sigiriya Rock View from Sigiriya Tank (attraction)
+  - Stop 3: Sri Dalada Museum (attraction)
+  - Stop 4: Kandy Museum 1 (attraction)
+  - Stop 5: Waters Edge - Sri Lanka (restaurant)
+  - Stop 6: Cinnamon Lakeside Colombo (hotel)
+  - Stop 7: Waters Edge - Sri Lanka (restaurant)
+[ENHANCED] 📍 Creating multi-stop route through Sri Lanka:
+  - Waypoints: 6 intermediate stops
+  - This will connect ALL attractions in your itinerary
+[GOOGLE_MAPS] 🗺️ Calculating multi-stop Sri Lankan route:
+  Origin: 6.9271,79.8612
+  Waypoints: 6 stops
+  Destination: 6.905807100000001,79.9117206
+  Route: 6.9383932,79.8420285 → 7.950907399999999,80.75934370000002 → 7.293460899999999,80.64151059999999 → 7.274446450380407,80.6777157861869 → 6.905807100000001,79.9117206 → 6.929170399999999,79.8492962
+[GOOGLE_MAPS] ✅ Multi-stop route calculated successfully:
+  - Total Distance: 446 km
+  - Total Duration: 11h 8m
+  - Legs: 7 segments
+  - Waypoints: 241 points following actual Sri Lankan roads
+[ENHANCED] ✅ Complete itinerary route calculated:
+  - Distance: 446 km
+  - Duration: 11h 8m
+  - Legs: 7 route segments
+  - Connects: Colombo → Sambodhi Pagoda Temple → Sigiriya Rock View from Sigiriya Tank → Sri Dalada Museum → Kandy Museum 1 → Waters Edge - Sri Lanka → Cinnamon Lakeside Colombo → Waters Edge - Sri Lanka
+[ENHANCED] ✅ Real route generated with 241 waypoints
+[ENHANCED] Getting complete Sri Lankan route coordinates for trip: test-trip
+[ENHANCED] Getting optimized route for trip: test-trip
+[ENHANCED] Fetching real route from Google Maps...
+[ENHANCED] Calculating real Google Maps route connecting ALL destinations
+[ENHANCED] 🗺️ Calculating complete Sri Lankan itinerary route:
+  - Origin: Colombo (6.9271, 79.8612)
+  - Total destinations: 7
+  - Stop 1: Sambodhi Pagoda Temple (attraction)
+  - Stop 2: Sigiriya Rock View from Sigiriya Tank (attraction)
+  - Stop 3: Sri Dalada Museum (attraction)
+  - Stop 4: Kandy Museum 1 (attraction)
+  - Stop 5: Waters Edge - Sri Lanka (restaurant)
+  - Stop 6: Cinnamon Lakeside Colombo (hotel)
+  - Stop 7: Waters Edge - Sri Lanka (restaurant)
+[ENHANCED] 📍 Creating multi-stop route through Sri Lanka:
+  - Waypoints: 6 intermediate stops
+  - This will connect ALL attractions in your itinerary
+[GOOGLE_MAPS] 🗺️ Calculating multi-stop Sri Lankan route:
+  Origin: 6.9271,79.8612
+  Waypoints: 6 stops
+  Destination: 6.905807100000001,79.9117206
+  Route: 6.9383932,79.8420285 → 7.950907399999999,80.75934370000002 → 7.293460899999999,80.64151059999999 → 7.274446450380407,80.6777157861869 → 6.905807100000001,79.9117206 → 6.929170399999999,79.8492962
+[GOOGLE_MAPS] ✅ Multi-stop route calculated successfully:
+  - Total Distance: 446 km
+  - Total Duration: 11h 8m
+  - Legs: 7 segments
+  - Waypoints: 241 points following actual Sri Lankan roads
+[ENHANCED] ✅ Complete itinerary route calculated:
+  - Distance: 446 km
+  - Duration: 11h 8m
+  - Legs: 7 route segments
+  - Connects: Colombo → Sambodhi Pagoda Temple → Sigiriya Rock View from Sigiriya Tank → Sri Dalada Museum → Kandy Museum 1 → Waters Edge - Sri Lanka → Cinnamon Lakeside Colombo → Waters Edge - Sri Lanka
+[ENHANCED] ✅ Real route generated with 241 waypoints
+[ENHANCED] Getting optimized route for trip: TR001
+[ENHANCED] Fetching real route from Google Maps...
+[ENHANCED] Calculating real Google Maps route connecting ALL destinations
+[ENHANCED] 🗺️ Calculating complete Sri Lankan itinerary route:
+  - Origin: Colombo (6.9271, 79.8612)
+  - Total destinations: 7
+  - Stop 1: Sambodhi Pagoda Temple (attraction)
+  - Stop 2: Sigiriya Rock View from Sigiriya Tank (attraction)
+  - Stop 3: Sri Dalada Museum (attraction)
+  - Stop 4: Kandy Museum 1 (attraction)
+  - Stop 5: Waters Edge - Sri Lanka (restaurant)
+  - Stop 6: Cinnamon Lakeside Colombo (hotel)
+  - Stop 7: Waters Edge - Sri Lanka (restaurant)
+[ENHANCED] 📍 Creating multi-stop route through Sri Lanka:
+  - Waypoints: 6 intermediate stops
+  - This will connect ALL attractions in your itinerary
+[GOOGLE_MAPS] 🗺️ Calculating multi-stop Sri Lankan route:
+  Origin: 6.9271,79.8612
+  Waypoints: 6 stops
+  Destination: 6.905807100000001,79.9117206
+  Route: 6.9383932,79.8420285 → 7.950907399999999,80.75934370000002 → 7.293460899999999,80.64151059999999 → 7.274446450380407,80.6777157861869 → 6.905807100000001,79.9117206 → 6.929170399999999,79.8492962
+[ENHANCED] Getting complete Sri Lankan route coordinates for trip: TR001
+[ENHANCED] Getting optimized route for trip: TR001
+[ENHANCED] Fetching real route from Google Maps...
+[ENHANCED] Calculating real Google Maps route connecting ALL destinations
+[ENHANCED] 🗺️ Calculating complete Sri Lankan itinerary route:
+  - Origin: Colombo (6.9271, 79.8612)
+  - Total destinations: 7
+  - Stop 1: Sambodhi Pagoda Temple (attraction)
+  - Stop 2: Sigiriya Rock View from Sigiriya Tank (attraction)
+  - Stop 3: Sri Dalada Museum (attraction)
+  - Stop 4: Kandy Museum 1 (attraction)
+  - Stop 5: Waters Edge - Sri Lanka (restaurant)
+  - Stop 6: Cinnamon Lakeside Colombo (hotel)
+  - Stop 7: Waters Edge - Sri Lanka (restaurant)
+[ENHANCED] 📍 Creating multi-stop route through Sri Lanka:
+  - Waypoints: 6 intermediate stops
+  - This will connect ALL attractions in your itinerary
+[GOOGLE_MAPS] 🗺️ Calculating multi-stop Sri Lankan route:
+  Origin: 6.9271,79.8612
+  Waypoints: 6 stops
+  Destination: 6.905807100000001,79.9117206
+  Route: 6.9383932,79.8420285 → 7.950907399999999,80.75934370000002 → 7.293460899999999,80.64151059999999 → 7.274446450380407,80.6777157861869 → 6.905807100000001,79.9117206 → 6.929170399999999,79.8492962
+[GOOGLE_MAPS] ✅ Multi-stop route calculated successfully:
+  - Total Distance: 446 km
+  - Total Duration: 11h 8m
+  - Legs: 7 segments
+  - Waypoints: 241 points following actual Sri Lankan roads
+[ENHANCED] ✅ Complete itinerary route calculated:
+  - Distance: 446 km
+  - Duration: 11h 8m
+  - Legs: 7 route segments
+  - Connects: Colombo → Sambodhi Pagoda Temple → Sigiriya Rock View from Sigiriya Tank → Sri Dalada Museum → Kandy Museum 1 → Waters Edge - Sri Lanka → Cinnamon Lakeside Colombo → Waters Edge - Sri Lanka
+[ENHANCED] ✅ Real route generated with 241 waypoints
+[GOOGLE_MAPS] ✅ Multi-stop route calculated successfully:
+  - Total Distance: 446 km
+  - Total Duration: 11h 8m
+  - Legs: 7 segments
+  - Waypoints: 241 points following actual Sri Lankan roads
+[ENHANCED] ✅ Complete itinerary route calculated:
+  - Distance: 446 km
+  - Duration: 11h 8m
+  - Legs: 7 route segments
+  - Connects: Colombo → Sambodhi Pagoda Temple → Sigiriya Rock View from Sigiriya Tank → Sri Dalada Museum → Kandy Museum 1 → Waters Edge - Sri Lanka → Cinnamon Lakeside Colombo → Waters Edge - Sri Lanka
+[ENHANCED] ✅ Real route generated with 241 waypoints
