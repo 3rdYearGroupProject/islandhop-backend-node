@@ -1,0 +1,32 @@
+{
+  "name": "schedule-service",
+  "version": "1.0.0",
+  "description": "Schedule microservice for drivers and guides in tourism platform",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "schedule",
+    "microservice",
+    "tourism",
+    "node.js",
+    "express",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "validator": "^13.11.0"
+  },
+  "devDependencies": {
+    "axios": "^1.11.0",
+    "nodemon": "^3.0.1"
+  }
+}
