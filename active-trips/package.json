@@ -1,7 +1,7 @@
 {
-  "name": "tourism-service",
+  "name": "active-trips",
   "version": "1.0.0",
-  "description": "Tourism microservice for IslandHop backend",
+  "description": "Active trips microservice for IslandHop backend",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "tourism",
+    "active-trips",
     "microservice",
     "express",
     "mongodb",

@@ -3,7 +3,7 @@ const connectDB = require('./src/utils/db');
 const tripRoutes = require('./src/routes/tripRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5006;
 
 // Middleware
 app.use(express.json());
@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 app.get('/health', (req, res) => {
   res.json({
     success: true,
-    message: 'Tourism service is running',
+    message: 'Active trips service is running',
     timestamp: new Date().toISOString()
   });
 });
@@ -55,7 +55,7 @@ const startServer = async () => {
     
     // Start the server
     app.listen(PORT, () => {
-      console.log(`Tourism service is running on port ${PORT}`);
+      console.log(`Active trips service is running on port ${PORT}`);
       console.log(`Health check available at: http://localhost:${PORT}/health`);
       console.log('Available endpoints:');
       console.log('  POST /api/set_driver');
