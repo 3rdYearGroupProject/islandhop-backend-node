@@ -1,6 +1,6 @@
-# Tourism Service
+# Active Trips Service
 
-A production-ready Node.js microservice built with Express.js and MongoDB for managing tourism trip assignments.
+A production-ready Node.js microservice built with Express.js and MongoDB for managing active trip assignments.
 
 ## Features
 
@@ -23,7 +23,7 @@ A production-ready Node.js microservice built with Express.js and MongoDB for ma
 1. Navigate to the service directory:
 
 ```bash
-cd tourism-service
+cd active-trips
 ```
 
 2. Install dependencies:
@@ -42,7 +42,7 @@ npm start
 npm run dev
 ```
 
-The service will run on port 3000 by default.
+The service will run on port 5006 by default.
 
 ## API Endpoints
 
