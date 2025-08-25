@@ -23,12 +23,21 @@ const PORT = process.env.PORT || 4000;
 
 async function startServer() {
   try {
+    console.log('[SERVER] Starting Scoring Service...');
+    console.log('[SERVER] Connecting to databases...');
+    
     await connectPostgres();
     await connectMongo();
+    
+    console.log('[SERVER] All database connections established');
+    console.log('[SERVER] Starting HTTP server on port', PORT);
+    
     app.listen(PORT, () => {
+      console.log('[SERVER] Scoring Service successfully started on port', PORT);
       logger.info(`Scoring Service running on port ${PORT}`);
     });
   } catch (err) {
+    console.log('[SERVER] Startup failed:', err.message);
     logger.error('Startup error:', err);
     process.exit(1);
   }
