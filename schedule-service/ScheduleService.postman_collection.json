@@ -1,0 +1,178 @@
+{
+  "info": {
+    "name": "Schedule Service API",
+    "description": "API collection for testing the Schedule microservice endpoints",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/schedule/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "health"]
+        }
+      }
+    },
+    {
+      "name": "Mark Driver Days Unavailable",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"driver@example.com\",\n  \"dates\": [\"2025-09-01\", \"2025-09-02\", \"2025-09-03\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/schedule/driver/mark-unavailable",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "driver", "mark-unavailable"]
+        }
+      }
+    },
+    {
+      "name": "Mark Guide Days Unavailable",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"guide@example.com\",\n  \"dates\": [\"2025-09-05\", \"2025-09-06\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/schedule/guide/mark-unavailable",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "guide", "mark-unavailable"]
+        }
+      }
+    },
+    {
+      "name": "Unmark Driver Days (Make Available)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"driver@example.com\",\n  \"dates\": [\"2025-09-01\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/schedule/driver/unmark-available",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "driver", "unmark-available"]
+        }
+      }
+    },
+    {
+      "name": "Lock Driver Days with Trip ID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"driver@example.com\",\n  \"dates\": [\"2025-09-10\"],\n  \"tripId\": \"TRIP_12345\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/schedule/driver/lock",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "driver", "lock"]
+        }
+      }
+    },
+    {
+      "name": "Lock Driver Days without Trip ID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"driver@example.com\",\n  \"dates\": [\"2025-09-11\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/schedule/driver/lock",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "driver", "lock"]
+        }
+      }
+    },
+    {
+      "name": "Get Driver Available Days",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/schedule/driver/available?email=driver@example.com&month=2025-09",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "driver", "available"],
+          "query": [
+            {
+              "key": "email",
+              "value": "driver@example.com"
+            },
+            {
+              "key": "month",
+              "value": "2025-09"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Guide Available Days",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/schedule/guide/available?email=guide@example.com&month=2025-09",
+          "host": ["{{baseUrl}}"],
+          "path": ["schedule", "guide", "available"],
+          "query": [
+            {
+              "key": "email",
+              "value": "guide@example.com"
+            },
+            {
+              "key": "month",
+              "value": "2025-09"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5005",
+      "type": "string"
+    }
+  ]
+}
