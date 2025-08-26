@@ -534,6 +534,108 @@
 			"response": []
 		},
 		{
+			"name": "Get Trips by Driver Email",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response contains trips data\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.exist;",
+							"    pm.expect(jsonData.data.driverEmail).to.exist;",
+							"    pm.expect(jsonData.data.trips).to.be.an('array');",
+							"    pm.expect(jsonData.data.totalTrips).to.be.a('number');",
+							"});",
+							"",
+							"pm.test(\"Driver email matches request\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.driverEmail).to.eql(pm.globals.get('test_driver_email') || 'driver1@example.com');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/driver/{{test_driver_email}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"driver",
+						"{{test_driver_email}}"
+					]
+				},
+				"description": "Get all trips for a specific driver by their email"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Trips by Driver Email - Invalid Driver",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response indicates no trips found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.trips).to.be.an('array').that.is.empty;",
+							"    pm.expect(jsonData.data.totalTrips).to.eql(0);",
+							"});",
+							"",
+							"pm.test(\"Message indicates no trips found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"No trips found\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/driver/invalid-driver@example.com",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"driver",
+						"invalid-driver@example.com"
+					]
+				},
+				"description": "Test with invalid driver email - should return empty trips array"
+			},
+			"response": []
+		},
+		{
 			"name": "Invalid Endpoint",
 			"event": [
 				{
@@ -614,6 +716,12 @@
 			"value": "J0INIUkpCDNpUHCUkY0xmyPwoEe2",
 			"type": "string",
 			"description": "Test user ID for testing user-specific endpoints (replace with actual user ID from your database)"
+		},
+		{
+			"key": "test_driver_email",
+			"value": "driver1@example.com",
+			"type": "string",
+			"description": "Test driver email for testing driver-specific endpoints (replace with actual driver email from your database)"
 		}
 	]
 }
