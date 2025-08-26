@@ -181,9 +181,14 @@
 							"    pm.expect(jsonData.data.driver_status).to.eql(0);",
 							"});",
 							"",
-							"pm.test(\"Driver email is preserved\", function () {",
+							"pm.test(\"Driver email is cleared\", function () {",
 							"    var jsonData = pm.response.json();",
-							"    pm.expect(jsonData.data.driver_email).to.exist;",
+							"    pm.expect(jsonData.data.driver_email).to.eql(\"\");",
+							"});",
+							"",
+							"pm.test(\"Email added to rejected emails\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.rejectedEmails).to.include(\"driver@example.com\");",
 							"});"
 						],
 						"type": "text/javascript"
@@ -237,9 +242,14 @@
 							"    pm.expect(jsonData.data.guide_status).to.eql(0);",
 							"});",
 							"",
-							"pm.test(\"Guide email is preserved\", function () {",
+							"pm.test(\"Guide email is cleared\", function () {",
 							"    var jsonData = pm.response.json();",
-							"    pm.expect(jsonData.data.guide_email).to.exist;",
+							"    pm.expect(jsonData.data.guide_email).to.eql(\"\");",
+							"});",
+							"",
+							"pm.test(\"Email added to rejected emails\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.rejectedEmails).to.include(\"guide@example.com\");",
 							"});"
 						],
 						"type": "text/javascript"

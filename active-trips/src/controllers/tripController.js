@@ -132,7 +132,9 @@ const removeDriver = async (req, res) => {
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       {
-        driver_status: 0
+        driver_status: 0,
+        driver_email: "",
+        $addToSet: { rejectedEmails: email }
       },
       { new: true }
     );
@@ -186,7 +188,9 @@ const removeGuide = async (req, res) => {
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       {
-        guide_status: 0
+        guide_status: 0,
+        guide_email: "",
+        $addToSet: { rejectedEmails: email }
       },
       { new: true }
     );
