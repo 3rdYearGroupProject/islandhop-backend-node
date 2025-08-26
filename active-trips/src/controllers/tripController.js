@@ -468,11 +468,80 @@ const getTripsByUserId = async (req, res) => {
   }
 };
 
+// Get all trips for a given driver email
+const getTripsByDriverEmail = async (req, res) => {
+  console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Function called');
+  console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Request params:', req.params);
+  console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Request query:', req.query);
+  
+  try {
+    const { driverEmail } = req.params;
+    console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Extracted driverEmail:', driverEmail);
+
+    if (!driverEmail) {
+      console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Validation failed - missing driverEmail');
+      return res.status(400).json({
+        success: false,
+        message: 'driverEmail is required'
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Searching for trips in database for driverEmail:', driverEmail);
+    const trips = await Trip.find({ driver_email: driverEmail });
+    console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Database search completed');
+    console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Found', trips.length, 'trips for driver');
+
+    if (trips.length === 0) {
+      console.log('[GET_TRIPS_BY_DRIVER_EMAIL] No trips found for this driver');
+      return res.json({
+        success: true,
+        message: 'No trips found for this driver',
+        data: {
+          driverEmail: driverEmail,
+          trips: [],
+          totalTrips: 0
+        }
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Trips found for driver:', trips.map(trip => ({
+      id: trip._id,
+      tripName: trip.tripName,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      userId: trip.userId,
+      driver_status: trip.driver_status,
+      vehicleType: trip.vehicleType
+    })));
+
+    console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Sending success response with trips data');
+
+    res.json({
+      success: true,
+      message: 'Trips retrieved successfully for driver',
+      data: {
+        driverEmail: driverEmail,
+        trips: trips,
+        totalTrips: trips.length
+      }
+    });
+  } catch (error) {
+    console.error('[GET_TRIPS_BY_DRIVER_EMAIL] Error occurred:', error);
+    console.error('[GET_TRIPS_BY_DRIVER_EMAIL] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   setDriver,
   setGuide,
   removeDriver,
   removeGuide,
   newActivateTrip,
-  getTripsByUserId
+  getTripsByUserId,
+  getTripsByDriverEmail
 };

@@ -103,6 +103,24 @@ The service will run on port 5006 by default.
   }
   ```
 
+#### Get Driver Trips
+
+- **GET** `/api/trips/driver/:driverEmail`
+- **Parameters**: `driverEmail` (path parameter)
+- **Action**: Returns all trips assigned to the specified driver
+- **Response**:
+  ```javascript
+  {
+    "success": true,
+    "message": "Trips retrieved successfully for driver",
+    "data": {
+      "driverEmail": "string",
+      "trips": [/* array of trip objects */],
+      "totalTrips": number
+    }
+  }
+  ```
+
 ## Database Schema
 
 ```javascript
