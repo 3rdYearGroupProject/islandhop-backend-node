@@ -29,6 +29,3 @@
 2025-07-19T08:08:35.012Z - Fetched drivers with filters: {}
 2025-07-19T08:10:17.201Z - Fetched drivers with filters: {}
 [2025-07-19T17:16:51.244Z] Verification service started on port 8061.
-[2025-07-20T18:16:06.115Z] Verification service started.
-2025-07-21T05:18:00.552Z - Fetched drivers with filters: {}
-[2025-07-22T02:53:11.662Z] Verification service started.
