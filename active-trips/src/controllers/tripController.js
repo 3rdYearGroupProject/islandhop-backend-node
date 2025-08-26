@@ -399,10 +399,80 @@ const newActivateTrip = async (req, res) => {
   }
 };
 
+// Get all trips for a given userId
+const getTripsByUserId = async (req, res) => {
+  console.log('[GET_TRIPS_BY_USER_ID] Function called');
+  console.log('[GET_TRIPS_BY_USER_ID] Request params:', req.params);
+  console.log('[GET_TRIPS_BY_USER_ID] Request query:', req.query);
+  
+  try {
+    const { userId } = req.params;
+    console.log('[GET_TRIPS_BY_USER_ID] Extracted userId:', userId);
+
+    if (!userId) {
+      console.log('[GET_TRIPS_BY_USER_ID] Validation failed - missing userId');
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_USER_ID] Searching for trips in database for userId:', userId);
+    const trips = await Trip.find({ userId: userId });
+    console.log('[GET_TRIPS_BY_USER_ID] Database search completed');
+    console.log('[GET_TRIPS_BY_USER_ID] Found', trips.length, 'trips for user');
+
+    if (trips.length === 0) {
+      console.log('[GET_TRIPS_BY_USER_ID] No trips found for this user');
+      return res.json({
+        success: true,
+        message: 'No trips found for this user',
+        data: {
+          userId: userId,
+          trips: [],
+          totalTrips: 0
+        }
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_USER_ID] Trips found for user:', trips.map(trip => ({
+      id: trip._id,
+      tripName: trip.tripName,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      driverNeeded: trip.driverNeeded,
+      guideNeeded: trip.guideNeeded,
+      driver_status: trip.driver_status,
+      guide_status: trip.guide_status
+    })));
+
+    console.log('[GET_TRIPS_BY_USER_ID] Sending success response with trips data');
+
+    res.json({
+      success: true,
+      message: 'Trips retrieved successfully',
+      data: {
+        userId: userId,
+        trips: trips,
+        totalTrips: trips.length
+      }
+    });
+  } catch (error) {
+    console.error('[GET_TRIPS_BY_USER_ID] Error occurred:', error);
+    console.error('[GET_TRIPS_BY_USER_ID] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   setDriver,
   setGuide,
   removeDriver,
   removeGuide,
-  newActivateTrip
+  newActivateTrip,
+  getTripsByUserId
 };
