@@ -7,7 +7,9 @@ const {
   removeGuide,
   newActivateTrip,
   getTripsByUserId,
-  getTripsByDriverEmail
+  getTripsByDriverEmail,
+  acceptDriver,
+  acceptGuide
 } = require('../controllers/tripController');
 
 // Route to set driver for a trip
@@ -30,5 +32,11 @@ router.get('/trips/user/:userId', getTripsByUserId);
 
 // Route to get all trips for a specific driver
 router.get('/trips/driver/:driverEmail', getTripsByDriverEmail);
+
+// Route to accept driver assignment for a trip
+router.post('/accept_driver', acceptDriver);
+
+// Route to accept guide assignment for a trip
+router.post('/accept_guide', acceptGuide);
 
 module.exports = router;

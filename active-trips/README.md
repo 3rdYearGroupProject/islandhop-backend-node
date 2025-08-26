@@ -121,6 +121,36 @@ The service will run on port 5006 by default.
   }
   ```
 
+#### Accept Driver
+
+- **POST** `/api/accept_driver`
+- **Body**: `{ "tripId": "string", "email": "string" }`
+- **Action**: Updates driver_status to 1 (accepted) for the assigned driver
+- **Validation**: Verifies that the provided email matches the driver_email already assigned to the trip
+- **Response**:
+  ```javascript
+  {
+    "success": true,
+    "message": "Driver accepted successfully",
+    "data": {/* updated trip object */}
+  }
+  ```
+
+#### Accept Guide
+
+- **POST** `/api/accept_guide`
+- **Body**: `{ "tripId": "string", "email": "string" }`
+- **Action**: Updates guide_status to 1 (accepted) for the assigned guide
+- **Validation**: Verifies that the provided email matches the guide_email already assigned to the trip
+- **Response**:
+  ```javascript
+  {
+    "success": true,
+    "message": "Guide accepted successfully",
+    "data": {/* updated trip object */}
+  }
+  ```
+
 ## Database Schema
 
 ```javascript

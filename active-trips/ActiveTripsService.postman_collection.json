@@ -636,6 +636,220 @@
 			"response": []
 		},
 		{
+			"name": "Accept Driver",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response contains message\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"Driver accepted successfully\");",
+							"});",
+							"",
+							"pm.test(\"Driver status is updated to 1\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.driver_status).to.eql(1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"{{test_driver_email}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/accept_driver",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"accept_driver"
+					]
+				},
+				"description": "Accept driver assignment for a trip - sets driver_status to 1"
+			},
+			"response": []
+		},
+		{
+			"name": "Accept Driver - Invalid Email",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response has success false\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(false);",
+							"});",
+							"",
+							"pm.test(\"Error message mentions email mismatch\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"does not match\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"wrong-driver@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/accept_driver",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"accept_driver"
+					]
+				},
+				"description": "Test accept driver with mismatched email - should return error"
+			},
+			"response": []
+		},
+		{
+			"name": "Accept Guide",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response contains message\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"Guide accepted successfully\");",
+							"});",
+							"",
+							"pm.test(\"Guide status is updated to 1\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.guide_status).to.eql(1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"{{test_guide_email}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/accept_guide",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"accept_guide"
+					]
+				},
+				"description": "Accept guide assignment for a trip - sets guide_status to 1"
+			},
+			"response": []
+		},
+		{
+			"name": "Accept Guide - Invalid Email",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response has success false\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(false);",
+							"});",
+							"",
+							"pm.test(\"Error message mentions email mismatch\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"does not match\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"wrong-guide@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/accept_guide",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"accept_guide"
+					]
+				},
+				"description": "Test accept guide with mismatched email - should return error"
+			},
+			"response": []
+		},
+		{
 			"name": "Invalid Endpoint",
 			"event": [
 				{
@@ -707,7 +921,7 @@
 		},
 		{
 			"key": "test_trip_id",
-			"value": "042cea55-afae-4c2e-9d19-e3c40490579b",
+			"value": "68ade8b701e20ecea620ef24",
 			"type": "string",
 			"description": "Test trip ID for testing endpoints (replace with actual trip ID from your database)"
 		},
@@ -722,6 +936,12 @@
 			"value": "driver1@example.com",
 			"type": "string",
 			"description": "Test driver email for testing driver-specific endpoints (replace with actual driver email from your database)"
+		},
+		{
+			"key": "test_guide_email",
+			"value": "guide1@example.com",
+			"type": "string",
+			"description": "Test guide email for testing guide-specific endpoints (replace with actual guide email from your database)"
 		}
 	]
 }
