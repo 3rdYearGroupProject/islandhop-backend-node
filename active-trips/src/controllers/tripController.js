@@ -128,19 +128,11 @@ const removeDriver = async (req, res) => {
       });
     }
 
-    console.log('[REMOVE_DRIVER] Attempting to update trip status in database');
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      tripId,
-      {
-        driver_status: 0,
-        driver_email: "",
-        $addToSet: { rejectedEmails: email }
-      },
-      { new: true }
-    );
-    console.log('[REMOVE_DRIVER] Database update completed');
-
-    if (!updatedTrip) {
+    // First, get the current trip data
+    console.log('[REMOVE_DRIVER] Fetching trip data from database');
+    const trip = await Trip.findById(tripId);
+    
+    if (!trip) {
       console.log('[REMOVE_DRIVER] Trip not found in database');
       return res.status(404).json({
         success: false,
@@ -148,14 +140,92 @@ const removeDriver = async (req, res) => {
       });
     }
 
-    console.log(`[REMOVE_DRIVER] Driver removed for trip ${tripId}, status set to: 0`);
-    console.log('[REMOVE_DRIVER] Sending success response');
+    console.log('[REMOVE_DRIVER] Trip found, extracting trip details for driver request');
+    
+    // Generate trip days array from start and end dates
+    let tripDays = [];
+    if (trip.startDate && trip.endDate) {
+      const startDate = new Date(trip.startDate);
+      const endDate = new Date(trip.endDate);
+      
+      for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
+        tripDays.push(date.toISOString().split('T')[0]);
+      }
+    } else {
+      console.log('[REMOVE_DRIVER] Warning: Trip missing start or end date');
+      tripDays = [new Date().toISOString().split('T')[0]]; // Default to today
+    }
 
-    res.json({
-      success: true,
-      message: 'Driver removed successfully',
-      data: updatedTrip
-    });
+    // Prepare excluded emails (current rejected emails + the email being removed)
+    const excludeEmails = [...(trip.rejectedEmails || []), email];
+    
+    console.log('[REMOVE_DRIVER] Requesting replacement driver from scoring service');
+    console.log('[REMOVE_DRIVER] Trip days:', tripDays);
+    console.log('[REMOVE_DRIVER] Vehicle type:', trip.vehicleType);
+    console.log('[REMOVE_DRIVER] Exclude emails:', excludeEmails);
+
+    // Request a new driver from scoring service
+    try {
+      const driverResponse = await axios.post('http://localhost:4000/api/request-driver-except', {
+        tripDays: tripDays,
+        vehicleType: trip.vehicleType || 'Hatchback',
+        excludeEmails: excludeEmails
+      });
+
+      console.log('[REMOVE_DRIVER] Replacement driver found:', driverResponse.data.email);
+      
+      // Update trip with new driver and add rejected email
+      console.log('[REMOVE_DRIVER] Updating trip with replacement driver');
+      const updatedTrip = await Trip.findByIdAndUpdate(
+        tripId,
+        {
+          driver_email: driverResponse.data.email,
+          $addToSet: { rejectedEmails: email }
+          // Note: Not changing driver_status, keeping it as is
+        },
+        { new: true }
+      );
+
+      console.log(`[REMOVE_DRIVER] Driver replaced for trip ${tripId}. Old: ${email}, New: ${driverResponse.data.email}`);
+      console.log('[REMOVE_DRIVER] Sending success response with replacement driver');
+
+      res.json({
+        success: true,
+        message: 'Driver removed and replaced successfully',
+        data: {
+          trip: updatedTrip,
+          oldDriverEmail: email,
+          newDriverEmail: driverResponse.data.email
+        }
+      });
+
+    } catch (scoringServiceError) {
+      console.error('[REMOVE_DRIVER] Failed to get replacement driver from scoring service:', scoringServiceError.message);
+      
+      // If no replacement driver available, just remove the current driver
+      console.log('[REMOVE_DRIVER] No replacement driver available, removing current driver without replacement');
+      const updatedTrip = await Trip.findByIdAndUpdate(
+        tripId,
+        {
+          driver_status: 0,
+          driver_email: "",
+          $addToSet: { rejectedEmails: email }
+        },
+        { new: true }
+      );
+
+      console.log(`[REMOVE_DRIVER] Driver removed for trip ${tripId}, no replacement found`);
+      
+      res.json({
+        success: true,
+        message: 'Driver removed successfully, but no replacement driver available',
+        data: {
+          trip: updatedTrip,
+          replacementFound: false
+        }
+      });
+    }
+
   } catch (error) {
     console.error('[REMOVE_DRIVER] Error occurred:', error);
     console.error('[REMOVE_DRIVER] Error message:', error.message);
