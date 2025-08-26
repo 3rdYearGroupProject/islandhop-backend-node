@@ -1,0 +1,103 @@
+COPILOT PROMPT: Replace Polyline with DirectionsService and DirectionsRenderer for authentic Google Maps routing
+
+CONTEXT:
+The existing MapPopupModal component uses Polyline to display routes, but this creates artificial straight-line connections between waypoints. We need to integrate Google Maps DirectionsService and DirectionsRenderer to show authentic road-following routes like Google Maps.
+
+CHANGES NEEDED:
+
+1. REMOVE EXISTING POLYLINE APPROACH:
+   - Remove the Polyline component and its coordinate-based rendering
+   - Remove coordData fetching from /route-coordinates endpoint
+
+2. ADD DIRECTIONSSERVICE INTEGRATION:
+   - Add state for DirectionsRenderer: const [directionsResponse, setDirectionsResponse] = useState(null);
+   - Create calculateRoute function that:
+     a) Fetches from new endpoint: /trips/${tripId}/directions-request
+     b) Uses Google Maps DirectionsService with the request parameters
+     c) Sets the result for DirectionsRenderer
+
+3. REPLACE POLYLINE WITH DIRECTIONSRENDERER:
+   - Replace the Polyline component with DirectionsRenderer
+   - Configure DirectionsRenderer with proper options:
+     - suppressMarkers: false (show destination markers)
+     - polylineOptions: { strokeColor: '#4285F4', strokeWeight: 6 }
+
+4. UPDATE DATA FETCHING:
+   - Change endpoint from /route-coordinates to /directions-request
+   - Remove coordData state and related logic
+   - Keep routeData for destination list functionality
+
+5. ADD DIRECTIONSSERVICE IMPLEMENTATION:
+   ```javascript
+   const calculateRoute = useCallback(async () => {
+     if (!isLoaded) return;
+     
+     try {
+       setLoading(true);
+       
+       // Get DirectionsService request parameters from backend
+       const response = await fetch(`${BASE_URL}/trips/${tripId}/directions-request`);
+       const { directionsRequest } = await response.json();
+       
+       // Use Google Maps DirectionsService (proper way)
+       const directionsService = new window.google.maps.DirectionsService();
+       
+       const result = await new Promise((resolve, reject) => {
+         directionsService.route(directionsRequest, (result, status) => {
+           if (status === 'OK') {
+             resolve(result);
+           } else {
+             reject(new Error(`Directions request failed: ${status}`));
+           }
+         });
+       });
+       
+       setDirectionsResponse(result);
+       
+     } catch (err) {
+       setError(err.message);
+     } finally {
+       setLoading(false);
+     }
+   }, [isLoaded, tripId]);
+   ```
+
+6. UPDATE JSX RENDERING:
+   - Replace Polyline with DirectionsRenderer:
+   ```javascript
+   {directionsResponse && (
+     <DirectionsRenderer
+       directions={directionsResponse}
+       options={{
+         suppressMarkers: false,
+         polylineOptions: {
+           strokeColor: '#4285F4',
+           strokeWeight: 6,
+           strokeOpacity: 0.8
+         }
+       }}
+     />
+   )}
+   ```
+
+7. UPDATE ROUTE STATISTICS:
+   - Extract distance/duration from directionsResponse instead of coordData
+   - Show route summary from directionsResponse.routes[0].summary
+
+8. MAINTAIN EXISTING FUNCTIONALITY:
+   - Keep destination markers and completion functionality
+   - Keep error handling and loading states
+   - Keep the destinations list sidebar
+
+EXPECTED RESULT:
+- Routes will follow actual Sri Lankan roads (highways A1, A6, etc.)
+- Turn-by-turn directions will be available
+- Route appearance will match Google Maps exactly
+- All 7 destinations will be connected with proper road routing
+- Total distance will show real driving distance (446 km)
+
+BACKEND ENDPOINT USED:
+GET /trips/{tripId}/directions-request
+Returns: { directionsRequest: { origin, destination, waypoints, travelMode: 'DRIVING' } }
+
+This implementation will show authentic Google Maps routes instead of artificial straight-line connections.

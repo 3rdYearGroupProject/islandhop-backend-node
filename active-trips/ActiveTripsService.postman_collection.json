@@ -1,0 +1,511 @@
+{
+	"info": {
+		"_postman_id": "active-trips-service-collection",
+		"name": "Active Trips Service API",
+		"description": "Collection for testing Active Trips Service endpoints - IslandHop Backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "active-trips-service"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response contains message\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"Active trips service is running\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the active trips service is running"
+			},
+			"response": []
+		},
+		{
+			"name": "Set Driver",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Driver email is set\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.driver_email).to.eql(\"driver@example.com\");",
+							"});",
+							"",
+							"pm.test(\"Driver status is 1\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.driver_status).to.eql(1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"driver@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/set_driver",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"set_driver"
+					]
+				},
+				"description": "Set a driver for a specific trip"
+			},
+			"response": []
+		},
+		{
+			"name": "Set Guide",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Guide email is set\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.guide_email).to.eql(\"guide@example.com\");",
+							"});",
+							"",
+							"pm.test(\"Guide status is 1\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.guide_status).to.eql(1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"guide@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/set_guide",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"set_guide"
+					]
+				},
+				"description": "Set a guide for a specific trip"
+			},
+			"response": []
+		},
+		{
+			"name": "Remove Driver",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Driver status is 0\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.driver_status).to.eql(0);",
+							"});",
+							"",
+							"pm.test(\"Driver email is preserved\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.driver_email).to.exist;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"driver@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/remove_driver",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"remove_driver"
+					]
+				},
+				"description": "Remove a driver from a specific trip (sets status to 0)"
+			},
+			"response": []
+		},
+		{
+			"name": "Remove Guide",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Guide status is 0\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.guide_status).to.eql(0);",
+							"});",
+							"",
+							"pm.test(\"Guide email is preserved\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.guide_email).to.exist;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\",\n    \"email\": \"guide@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/remove_guide",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"remove_guide"
+					]
+				},
+				"description": "Remove a guide from a specific trip (sets status to 0)"
+			},
+			"response": []
+		},
+		{
+			"name": "Activate Trip",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response contains trip data\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.trip).to.exist;",
+							"});",
+							"",
+							"pm.test(\"Response contains assignment status\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('driverAssigned');",
+							"    pm.expect(jsonData.data).to.have.property('guideAssigned');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"{{test_trip_id}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/new_activate_trip",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"new_activate_trip"
+					]
+				},
+				"description": "Activate a trip with automatic driver/guide assignment based on trip requirements"
+			},
+			"response": []
+		},
+		{
+			"name": "Set Driver - Missing tripId",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response has success false\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(false);",
+							"});",
+							"",
+							"pm.test(\"Error message mentions required fields\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"required\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"driver@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/set_driver",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"set_driver"
+					]
+				},
+				"description": "Test validation - missing tripId should return 400"
+			},
+			"response": []
+		},
+		{
+			"name": "Set Driver - Invalid tripId",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response has success false\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(false);",
+							"});",
+							"",
+							"pm.test(\"Error message mentions trip not found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"not found\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"tripId\": \"invalid-trip-id-12345\",\n    \"email\": \"driver@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/set_driver",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"set_driver"
+					]
+				},
+				"description": "Test with invalid tripId - should return 404"
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid Endpoint",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response has success false\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(false);",
+							"});",
+							"",
+							"pm.test(\"Error message mentions route not found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"not found\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/invalid-endpoint",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"invalid-endpoint"
+					]
+				},
+				"description": "Test 404 handler for invalid endpoints"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5006",
+			"type": "string",
+			"description": "Base URL for the Active Trips Service"
+		},
+		{
+			"key": "test_trip_id",
+			"value": "042cea55-afae-4c2e-9d19-e3c40490579b",
+			"type": "string",
+			"description": "Test trip ID for testing endpoints (replace with actual trip ID from your database)"
+		}
+	]
+}
