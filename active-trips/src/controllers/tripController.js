@@ -3,16 +3,22 @@ const axios = require('axios');
 
 // Set driver for a trip
 const setDriver = async (req, res) => {
+  console.log('[SET_DRIVER] Function called');
+  console.log('[SET_DRIVER] Request body:', req.body);
+  
   try {
     const { tripId, email } = req.body;
+    console.log('[SET_DRIVER] Extracted tripId:', tripId, 'email:', email);
 
     if (!tripId || !email) {
+      console.log('[SET_DRIVER] Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
         message: 'tripId and email are required'
       });
     }
 
+    console.log('[SET_DRIVER] Attempting to update trip in database');
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       {
@@ -21,15 +27,18 @@ const setDriver = async (req, res) => {
       },
       { new: true }
     );
+    console.log('[SET_DRIVER] Database update completed');
 
     if (!updatedTrip) {
+      console.log('[SET_DRIVER] Trip not found in database');
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
       });
     }
 
-    console.log(`Driver set for trip ${tripId}: ${email}, status: 1`);
+    console.log(`[SET_DRIVER] Driver set for trip ${tripId}: ${email}, status: 1`);
+    console.log('[SET_DRIVER] Sending success response');
 
     res.json({
       success: true,
@@ -37,7 +46,8 @@ const setDriver = async (req, res) => {
       data: updatedTrip
     });
   } catch (error) {
-    console.error('Error setting driver:', error);
+    console.error('[SET_DRIVER] Error occurred:', error);
+    console.error('[SET_DRIVER] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -48,16 +58,22 @@ const setDriver = async (req, res) => {
 
 // Set guide for a trip
 const setGuide = async (req, res) => {
+  console.log('[SET_GUIDE] Function called');
+  console.log('[SET_GUIDE] Request body:', req.body);
+  
   try {
     const { tripId, email } = req.body;
+    console.log('[SET_GUIDE] Extracted tripId:', tripId, 'email:', email);
 
     if (!tripId || !email) {
+      console.log('[SET_GUIDE] Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
         message: 'tripId and email are required'
       });
     }
 
+    console.log('[SET_GUIDE] Attempting to update trip in database');
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       {
@@ -66,15 +82,18 @@ const setGuide = async (req, res) => {
       },
       { new: true }
     );
+    console.log('[SET_GUIDE] Database update completed');
 
     if (!updatedTrip) {
+      console.log('[SET_GUIDE] Trip not found in database');
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
       });
     }
 
-    console.log(`Guide set for trip ${tripId}: ${email}, status: 1`);
+    console.log(`[SET_GUIDE] Guide set for trip ${tripId}: ${email}, status: 1`);
+    console.log('[SET_GUIDE] Sending success response');
 
     res.json({
       success: true,
@@ -82,7 +101,8 @@ const setGuide = async (req, res) => {
       data: updatedTrip
     });
   } catch (error) {
-    console.error('Error setting guide:', error);
+    console.error('[SET_GUIDE] Error occurred:', error);
+    console.error('[SET_GUIDE] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -93,16 +113,22 @@ const setGuide = async (req, res) => {
 
 // Remove driver from a trip
 const removeDriver = async (req, res) => {
+  console.log('[REMOVE_DRIVER] Function called');
+  console.log('[REMOVE_DRIVER] Request body:', req.body);
+  
   try {
     const { tripId, email } = req.body;
+    console.log('[REMOVE_DRIVER] Extracted tripId:', tripId, 'email:', email);
 
     if (!tripId || !email) {
+      console.log('[REMOVE_DRIVER] Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
         message: 'tripId and email are required'
       });
     }
 
+    console.log('[REMOVE_DRIVER] Attempting to update trip status in database');
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       {
@@ -110,15 +136,18 @@ const removeDriver = async (req, res) => {
       },
       { new: true }
     );
+    console.log('[REMOVE_DRIVER] Database update completed');
 
     if (!updatedTrip) {
+      console.log('[REMOVE_DRIVER] Trip not found in database');
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
       });
     }
 
-    console.log(`Driver removed for trip ${tripId}, status set to: 0`);
+    console.log(`[REMOVE_DRIVER] Driver removed for trip ${tripId}, status set to: 0`);
+    console.log('[REMOVE_DRIVER] Sending success response');
 
     res.json({
       success: true,
@@ -126,7 +155,8 @@ const removeDriver = async (req, res) => {
       data: updatedTrip
     });
   } catch (error) {
-    console.error('Error removing driver:', error);
+    console.error('[REMOVE_DRIVER] Error occurred:', error);
+    console.error('[REMOVE_DRIVER] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -137,16 +167,22 @@ const removeDriver = async (req, res) => {
 
 // Remove guide from a trip
 const removeGuide = async (req, res) => {
+  console.log('[REMOVE_GUIDE] Function called');
+  console.log('[REMOVE_GUIDE] Request body:', req.body);
+  
   try {
     const { tripId, email } = req.body;
+    console.log('[REMOVE_GUIDE] Extracted tripId:', tripId, 'email:', email);
 
     if (!tripId || !email) {
+      console.log('[REMOVE_GUIDE] Validation failed - missing required fields');
       return res.status(400).json({
         success: false,
         message: 'tripId and email are required'
       });
     }
 
+    console.log('[REMOVE_GUIDE] Attempting to update trip status in database');
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       {
@@ -154,15 +190,18 @@ const removeGuide = async (req, res) => {
       },
       { new: true }
     );
+    console.log('[REMOVE_GUIDE] Database update completed');
 
     if (!updatedTrip) {
+      console.log('[REMOVE_GUIDE] Trip not found in database');
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
       });
     }
 
-    console.log(`Guide removed for trip ${tripId}, status set to: 0`);
+    console.log(`[REMOVE_GUIDE] Guide removed for trip ${tripId}, status set to: 0`);
+    console.log('[REMOVE_GUIDE] Sending success response');
 
     res.json({
       success: true,
@@ -170,7 +209,8 @@ const removeGuide = async (req, res) => {
       data: updatedTrip
     });
   } catch (error) {
-    console.error('Error removing guide:', error);
+    console.error('[REMOVE_GUIDE] Error occurred:', error);
+    console.error('[REMOVE_GUIDE] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -181,10 +221,15 @@ const removeGuide = async (req, res) => {
 
 // Activate trip with automatic driver/guide assignment
 const newActivateTrip = async (req, res) => {
+  console.log('[NEW_ACTIVATE_TRIP] Function called');
+  console.log('[NEW_ACTIVATE_TRIP] Request body:', req.body);
+  
   try {
     const { tripId } = req.body;
+    console.log('[NEW_ACTIVATE_TRIP] Extracted tripId:', tripId);
 
     if (!tripId) {
+      console.log('[NEW_ACTIVATE_TRIP] Validation failed - missing tripId');
       return res.status(400).json({
         success: false,
         message: 'tripId is required'
@@ -192,82 +237,146 @@ const newActivateTrip = async (req, res) => {
     }
 
     // Find the trip
+    console.log('[NEW_ACTIVATE_TRIP] Searching for trip in database');
     const trip = await Trip.findById(tripId);
+    console.log('[NEW_ACTIVATE_TRIP] Database search completed');
+    
     if (!trip) {
+      console.log('[NEW_ACTIVATE_TRIP] Trip not found in database');
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
       });
     }
 
-    console.log(`Activating trip ${tripId}...`);
+    console.log('[NEW_ACTIVATE_TRIP] Trip found:', { 
+      id: trip._id, 
+      driverNeeded: trip.driverNeeded, 
+      guideNeeded: trip.guideNeeded,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      vehicleType: trip.vehicleType
+    });
+    console.log(`[NEW_ACTIVATE_TRIP] Activating trip ${tripId}...`);
+
+    // Generate trip days array from start and end dates
+    let tripDays = [];
+    if (trip.startDate && trip.endDate) {
+      const startDate = new Date(trip.startDate);
+      const endDate = new Date(trip.endDate);
+      
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        tripDays.push(d.toISOString().split('T')[0]); // Format as YYYY-MM-DD
+      }
+      console.log('[NEW_ACTIVATE_TRIP] Generated trip days:', tripDays);
+    } else {
+      console.log('[NEW_ACTIVATE_TRIP] Warning: Start date or end date missing from trip data');
+    }
 
     let updateData = {};
     let driverAssigned = false;
     let guideAssigned = false;
+    console.log('[NEW_ACTIVATE_TRIP] Initialized assignment tracking variables');
 
     // Handle driver assignment if needed
     if (trip.driverNeeded === 1) {
+      console.log('[NEW_ACTIVATE_TRIP] Driver is needed for this trip');
       try {
-        console.log('Requesting driver from scoring service...');
-        const driverResponse = await axios.post('http://localhost:4000/api/request-driver');
+        console.log('[NEW_ACTIVATE_TRIP] Requesting driver from scoring service...');
+        
+        // Prepare request data for driver assignment
+        const driverRequestData = {
+          tripDays: tripDays,
+          vehicleType: trip.vehicleType || 'Unknown'
+        };
+        console.log('[NEW_ACTIVATE_TRIP] Driver request data:', driverRequestData);
+        
+        const driverResponse = await axios.post('http://localhost:4000/api/request-driver', driverRequestData);
+        console.log('[NEW_ACTIVATE_TRIP] Driver service response received:', driverResponse.status);
         
         if (driverResponse.data && driverResponse.data.email) {
+          console.log('[NEW_ACTIVATE_TRIP] Driver email received:', driverResponse.data.email);
           updateData.driver_email = driverResponse.data.email;
           updateData.driver_status = 1;
           driverAssigned = true;
-          console.log(`Driver assigned: ${driverResponse.data.email}`);
+          console.log(`[NEW_ACTIVATE_TRIP] Driver assigned: ${driverResponse.data.email}`);
 
           // Notify schedule service about driver assignment
           try {
+            console.log('[NEW_ACTIVATE_TRIP] Notifying schedule service about driver assignment');
             await axios.post('http://localhost:4001/api/request-driver-email', {
               email: driverResponse.data.email
             });
-            console.log(`Driver email sent to schedule service: ${driverResponse.data.email}`);
+            console.log(`[NEW_ACTIVATE_TRIP] Driver email sent to schedule service: ${driverResponse.data.email}`);
           } catch (scheduleError) {
-            console.error('Error notifying schedule service about driver:', scheduleError.message);
+            console.error('[NEW_ACTIVATE_TRIP] Error notifying schedule service about driver:', scheduleError.message);
           }
+        } else {
+          console.log('[NEW_ACTIVATE_TRIP] No driver email received from scoring service');
         }
       } catch (driverError) {
-        console.error('Error requesting driver:', driverError.message);
+        console.error('[NEW_ACTIVATE_TRIP] Error requesting driver:', driverError.message);
+        console.error('[NEW_ACTIVATE_TRIP] Driver request failed, continuing without driver assignment');
       }
+    } else {
+      console.log('[NEW_ACTIVATE_TRIP] No driver needed for this trip');
     }
 
     // Handle guide assignment if needed
     if (trip.guideNeeded === 1) {
+      console.log('[NEW_ACTIVATE_TRIP] Guide is needed for this trip');
       try {
-        console.log('Requesting guide from scoring service...');
-        const guideResponse = await axios.post('http://localhost:4000/api/request-guide');
+        console.log('[NEW_ACTIVATE_TRIP] Requesting guide from scoring service...');
+        
+        // Prepare request data for guide assignment
+        const guideRequestData = {
+          tripDays: tripDays,
+          vehicleType: trip.vehicleType || 'Unknown'
+        };
+        console.log('[NEW_ACTIVATE_TRIP] Guide request data:', guideRequestData);
+        
+        const guideResponse = await axios.post('http://localhost:4000/api/request-guide', guideRequestData);
+        console.log('[NEW_ACTIVATE_TRIP] Guide service response received:', guideResponse.status);
         
         if (guideResponse.data && guideResponse.data.email) {
+          console.log('[NEW_ACTIVATE_TRIP] Guide email received:', guideResponse.data.email);
           updateData.guide_email = guideResponse.data.email;
           updateData.guide_status = 1;
           guideAssigned = true;
-          console.log(`Guide assigned: ${guideResponse.data.email}`);
+          console.log(`[NEW_ACTIVATE_TRIP] Guide assigned: ${guideResponse.data.email}`);
 
           // Notify schedule service about guide assignment
           try {
+            console.log('[NEW_ACTIVATE_TRIP] Notifying schedule service about guide assignment');
             await axios.post('http://localhost:4001/api/request-guide-email', {
               email: guideResponse.data.email
             });
-            console.log(`Guide email sent to schedule service: ${guideResponse.data.email}`);
+            console.log(`[NEW_ACTIVATE_TRIP] Guide email sent to schedule service: ${guideResponse.data.email}`);
           } catch (scheduleError) {
-            console.error('Error notifying schedule service about guide:', scheduleError.message);
+            console.error('[NEW_ACTIVATE_TRIP] Error notifying schedule service about guide:', scheduleError.message);
           }
+        } else {
+          console.log('[NEW_ACTIVATE_TRIP] No guide email received from scoring service');
         }
       } catch (guideError) {
-        console.error('Error requesting guide:', guideError.message);
+        console.error('[NEW_ACTIVATE_TRIP] Error requesting guide:', guideError.message);
+        console.error('[NEW_ACTIVATE_TRIP] Guide request failed, continuing without guide assignment');
       }
+    } else {
+      console.log('[NEW_ACTIVATE_TRIP] No guide needed for this trip');
     }
 
     // Update the trip with new assignments
+    console.log('[NEW_ACTIVATE_TRIP] Updating trip in database with assignment data:', updateData);
     const updatedTrip = await Trip.findByIdAndUpdate(
       tripId,
       updateData,
       { new: true }
     );
+    console.log('[NEW_ACTIVATE_TRIP] Trip update completed in database');
 
-    console.log(`Trip ${tripId} activation completed. Driver assigned: ${driverAssigned}, Guide assigned: ${guideAssigned}`);
+    console.log(`[NEW_ACTIVATE_TRIP] Trip ${tripId} activation completed. Driver assigned: ${driverAssigned}, Guide assigned: ${guideAssigned}`);
+    console.log('[NEW_ACTIVATE_TRIP] Sending success response');
 
     res.json({
       success: true,
@@ -279,7 +388,9 @@ const newActivateTrip = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error activating trip:', error);
+    console.error('[NEW_ACTIVATE_TRIP] Error occurred during trip activation:', error);
+    console.error('[NEW_ACTIVATE_TRIP] Error message:', error.message);
+    console.error('[NEW_ACTIVATE_TRIP] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
