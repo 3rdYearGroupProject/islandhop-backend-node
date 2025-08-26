@@ -91,6 +91,9 @@ const tripSchema = new mongoose.Schema({
   payedAmount: {
     type: String
   },
+  rejectedEmails: [{
+    type: String
+  }],
   _class: {
     type: String
   }

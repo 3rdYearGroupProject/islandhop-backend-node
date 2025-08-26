@@ -68,13 +68,13 @@ The service will run on port 5006 by default.
 
 - **POST** `/api/remove_driver`
 - **Body**: `{ "tripId": "string", "email": "string" }`
-- **Action**: Sets driver_status=0 (keeps email unchanged)
+- **Action**: Sets driver_status=0, clears driver_email, and adds email to rejectedEmails array
 
 #### Remove Guide
 
 - **POST** `/api/remove_guide`
 - **Body**: `{ "tripId": "string", "email": "string" }`
-- **Action**: Sets guide_status=0 (keeps email unchanged)
+- **Action**: Sets guide_status=0, clears guide_email, and adds email to rejectedEmails array
 
 #### Activate Trip
 
