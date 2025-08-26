@@ -65,6 +65,8 @@ const startServer = async () => {
       console.log('  POST /api/new_activate_trip');
       console.log('  GET  /api/trips/user/:userId');
       console.log('  GET  /api/trips/driver/:driverEmail');
+      console.log('  POST /api/accept_driver');
+      console.log('  POST /api/accept_guide');
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -536,6 +536,114 @@ const getTripsByDriverEmail = async (req, res) => {
   }
 };
 
+// Accept driver for a trip
+const acceptDriver = async (req, res) => {
+  console.log('[ACCEPT_DRIVER] Function called');
+  console.log('[ACCEPT_DRIVER] Request body:', req.body);
+  
+  try {
+    const { tripId, email } = req.body;
+    console.log('[ACCEPT_DRIVER] Extracted tripId:', tripId, 'email:', email);
+
+    if (!tripId || !email) {
+      console.log('[ACCEPT_DRIVER] Validation failed - missing required fields');
+      return res.status(400).json({
+        success: false,
+        message: 'tripId and email are required'
+      });
+    }
+
+    console.log('[ACCEPT_DRIVER] Attempting to update driver status in database');
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      tripId,
+      {
+        driver_status: 1
+      },
+      { new: true }
+    );
+    console.log('[ACCEPT_DRIVER] Database update completed');
+
+    if (!updatedTrip) {
+      console.log('[ACCEPT_DRIVER] Trip not found in database');
+      return res.status(404).json({
+        success: false,
+        message: 'Trip not found'
+      });
+    }
+
+    console.log(`[ACCEPT_DRIVER] Driver accepted for trip ${tripId}: ${email}, status: 1`);
+    console.log('[ACCEPT_DRIVER] Sending success response');
+
+    res.json({
+      success: true,
+      message: 'Driver accepted successfully',
+      data: updatedTrip
+    });
+  } catch (error) {
+    console.error('[ACCEPT_DRIVER] Error occurred:', error);
+    console.error('[ACCEPT_DRIVER] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Accept guide for a trip
+const acceptGuide = async (req, res) => {
+  console.log('[ACCEPT_GUIDE] Function called');
+  console.log('[ACCEPT_GUIDE] Request body:', req.body);
+  
+  try {
+    const { tripId, email } = req.body;
+    console.log('[ACCEPT_GUIDE] Extracted tripId:', tripId, 'email:', email);
+
+    if (!tripId || !email) {
+      console.log('[ACCEPT_GUIDE] Validation failed - missing required fields');
+      return res.status(400).json({
+        success: false,
+        message: 'tripId and email are required'
+      });
+    }
+
+    console.log('[ACCEPT_GUIDE] Attempting to update guide status in database');
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      tripId,
+      {
+        guide_status: 1
+      },
+      { new: true }
+    );
+    console.log('[ACCEPT_GUIDE] Database update completed');
+
+    if (!updatedTrip) {
+      console.log('[ACCEPT_GUIDE] Trip not found in database');
+      return res.status(404).json({
+        success: false,
+        message: 'Trip not found'
+      });
+    }
+
+    console.log(`[ACCEPT_GUIDE] Guide accepted for trip ${tripId}: ${email}, status: 1`);
+    console.log('[ACCEPT_GUIDE] Sending success response');
+
+    res.json({
+      success: true,
+      message: 'Guide accepted successfully',
+      data: updatedTrip
+    });
+  } catch (error) {
+    console.error('[ACCEPT_GUIDE] Error occurred:', error);
+    console.error('[ACCEPT_GUIDE] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   setDriver,
   setGuide,
@@ -543,5 +651,7 @@ module.exports = {
   removeGuide,
   newActivateTrip,
   getTripsByUserId,
-  getTripsByDriverEmail
+  getTripsByDriverEmail,
+  acceptDriver,
+  acceptGuide
 };
