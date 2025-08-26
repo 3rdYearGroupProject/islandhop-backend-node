@@ -50,3 +50,56 @@ exports.requestGuide = async (req, res, next) => {
     next(err);
   }
 };
+
+// POST /api/request-guide-except
+// Input: { tripDays: ["2025-09-02", ...], excludeEmails: ["email1@example.com", "email2@example.com"] }
+exports.requestGuideExcept = async (req, res, next) => {
+  try {
+    console.log('[GUIDE CONTROLLER] Request guide except received:', req.body);
+    const { tripDays, excludeEmails } = req.body;
+    
+    console.log('[GUIDE CONTROLLER] Validating input - tripDays:', tripDays, 'excludeEmails:', excludeEmails);
+    if (!tripDays || !Array.isArray(tripDays) || !excludeEmails || !Array.isArray(excludeEmails)) {
+      console.log('[GUIDE CONTROLLER] Validation failed - invalid input');
+      return res.status(400).json({ error: 'tripDays (array) and excludeEmails (array) are required' });
+    }
+    
+    console.log('[GUIDE CONTROLLER] Getting unavailable guides for dates:', tripDays);
+    // Get unavailable guides
+    const unavailable = await getUnavailableEmails('guide', tripDays);
+    console.log('[GUIDE CONTROLLER] Unavailable guides:', unavailable);
+    
+    console.log('[GUIDE CONTROLLER] Fetching all guides from database');
+    // Get all guides
+    const allGuides = await getAllGuides();
+    console.log('[GUIDE CONTROLLER] Total guides found:', allGuides.length);
+    
+    console.log('[GUIDE CONTROLLER] Filtering guides by availability and excluding specified emails');
+    // Filter available and exclude specified emails
+    const filtered = allGuides.filter(g => 
+      !unavailable.includes(g.email) && 
+      !excludeEmails.includes(g.email)
+    );
+    console.log('[GUIDE CONTROLLER] Available guides after filtering:', filtered.length);
+    
+    if (!filtered.length) {
+      console.log('[GUIDE CONTROLLER] No available guides found after excluding specified emails');
+      return res.status(404).json({ error: 'No available guides (excluding specified emails)' });
+    }
+    
+    console.log('[GUIDE CONTROLLER] Finding top guide from available guides (excluding specified emails)');
+    // Get top guide
+    const top = await getTopGuide(filtered.map(g => g.email));
+    
+    if (!top) {
+      console.log('[GUIDE CONTROLLER] No top guide found');
+      return res.status(404).json({ error: 'No available guides (excluding specified emails)' });
+    }
+    
+    console.log('[GUIDE CONTROLLER] Top guide selected (excluding specified emails):', top.email);
+    res.json({ email: top.email });
+  } catch (err) {
+    console.log('[GUIDE CONTROLLER] Error occurred:', err.message);
+    next(err);
+  }
+};
