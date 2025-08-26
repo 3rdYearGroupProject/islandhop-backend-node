@@ -85,6 +85,24 @@ The service will run on port 5006 by default.
   - If guideNeeded=1: Calls scoring service for guide assignment
   - Notifies schedule service about assignments
 
+#### Get User Trips
+
+- **GET** `/api/trips/user/:userId`
+- **Parameters**: `userId` (path parameter)
+- **Action**: Returns all trips for the specified user
+- **Response**:
+  ```javascript
+  {
+    "success": true,
+    "message": "Trips retrieved successfully",
+    "data": {
+      "userId": "string",
+      "trips": [/* array of trip objects */],
+      "totalTrips": number
+    }
+  }
+  ```
+
 ## Database Schema
 
 ```javascript

@@ -432,6 +432,108 @@
 			"response": []
 		},
 		{
+			"name": "Get Trips by User ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response contains trips data\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.exist;",
+							"    pm.expect(jsonData.data.userId).to.exist;",
+							"    pm.expect(jsonData.data.trips).to.be.an('array');",
+							"    pm.expect(jsonData.data.totalTrips).to.be.a('number');",
+							"});",
+							"",
+							"pm.test(\"UserId matches request\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.userId).to.eql(pm.globals.get('test_user_id') || 'J0INIUkpCDNpUHCUkY0xmyPwoEe2');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/user/{{test_user_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"user",
+						"{{test_user_id}}"
+					]
+				},
+				"description": "Get all trips for a specific user by their userId"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Trips by User ID - Invalid User",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has success field\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.eql(true);",
+							"});",
+							"",
+							"pm.test(\"Response indicates no trips found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data.trips).to.be.an('array').that.is.empty;",
+							"    pm.expect(jsonData.data.totalTrips).to.eql(0);",
+							"});",
+							"",
+							"pm.test(\"Message indicates no trips found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"No trips found\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/trips/user/invalid-user-id-12345",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"trips",
+						"user",
+						"invalid-user-id-12345"
+					]
+				},
+				"description": "Test with invalid userId - should return empty trips array"
+			},
+			"response": []
+		},
+		{
 			"name": "Invalid Endpoint",
 			"event": [
 				{
@@ -506,6 +608,12 @@
 			"value": "042cea55-afae-4c2e-9d19-e3c40490579b",
 			"type": "string",
 			"description": "Test trip ID for testing endpoints (replace with actual trip ID from your database)"
+		},
+		{
+			"key": "test_user_id",
+			"value": "J0INIUkpCDNpUHCUkY0xmyPwoEe2",
+			"type": "string",
+			"description": "Test user ID for testing user-specific endpoints (replace with actual user ID from your database)"
 		}
 	]
 }
