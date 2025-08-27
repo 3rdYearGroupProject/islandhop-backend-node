@@ -16,9 +16,10 @@ const sequelize = new Sequelize(
       idle: 10000,
     },
     dialectOptions: {
-      ssl: process.env.PG_SSL === "true"
-        ? { require: true, rejectUnauthorized: false }
-        : false,
+      ssl:
+        process.env.PG_SSL === "true"
+          ? { require: true, rejectUnauthorized: false }
+          : false,
     },
   }
 );
@@ -27,13 +28,36 @@ const connectPostgreSQL = async () => {
   try {
     await sequelize.authenticate();
     console.log("✅ PostgreSQL connection has been established successfully.");
-
-    // Sync models with database
-    await sequelize.sync({ force: false });
-    console.log("✅ PostgreSQL models synchronized.");
   } catch (error) {
     console.error("❌ Unable to connect to PostgreSQL:", error);
     process.exit(1);
+  }
+};
+
+// Helper function to execute raw SQL queries
+const executeQuery = async (query, replacements = {}) => {
+  try {
+    const [results, metadata] = await sequelize.query(query, {
+      replacements,
+      type: Sequelize.QueryTypes.SELECT,
+    });
+    return results;
+  } catch (error) {
+    console.error("SQL Query Error:", error);
+    throw error;
+  }
+};
+
+// Helper function for non-SELECT queries (INSERT, UPDATE, DELETE)
+const executeNonQuery = async (query, replacements = {}) => {
+  try {
+    const [results, metadata] = await sequelize.query(query, {
+      replacements,
+    });
+    return { results, metadata };
+  } catch (error) {
+    console.error("SQL Query Error:", error);
+    throw error;
   }
 };
 
@@ -43,4 +67,9 @@ process.on("SIGINT", async () => {
   console.log("🔌 PostgreSQL connection closed due to app termination");
 });
 
-module.exports = { sequelize, connectPostgreSQL };
+module.exports = {
+  sequelize,
+  connectPostgreSQL,
+  executeQuery,
+  executeNonQuery,
+};

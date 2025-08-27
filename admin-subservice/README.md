@@ -10,7 +10,7 @@ A comprehensive Node.js microservice for admin functionality in the Island Hop a
 - **Admin Management**: Simple admin registration and management
 - **Dashboard Analytics**: Comprehensive dashboard with statistics and analytics
 - **Multi-Database Support**: MongoDB for document storage, PostgreSQL for relational data
-- **Input Validation**: Joi-based request validation
+- **Database Access**: Raw SQL queries for PostgreSQL, Mongoose for MongoDB
 - **Logging**: Winston-based structured logging
 - **Error Handling**: Global error handling middleware
 
@@ -19,8 +19,8 @@ A comprehensive Node.js microservice for admin functionality in the Island Hop a
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Databases**:
-  - MongoDB (via Mongoose)
-  - PostgreSQL (via Sequelize)
+  - MongoDB (via Mongoose) - for admin data
+  - PostgreSQL (raw SQL queries) - for user and role data
 - **Validation**: Joi
 - **Logging**: Winston + Morgan
 - **Environment**: dotenv
@@ -35,9 +35,7 @@ admin-subservice/
 │   ├── roleController.js
 │   └── dashboardController.js
 ├── models/               # Data models
-│   ├── Admin.js         # MongoDB model (no password)
-│   ├── User.js          # PostgreSQL model
-│   └── Role.js          # PostgreSQL model
+│   └── Admin.js         # MongoDB model (no password)
 ├── routes/              # Route definitions
 │   ├── authRoutes.js    # Admin management routes
 │   ├── userRoutes.js
@@ -47,15 +45,39 @@ admin-subservice/
 │   └── errorHandler.js
 ├── config/              # Database configurations
 │   ├── mongodb.js
-│   └── postgresql.js
+│   └── postgresql.js    # Raw SQL query helpers
 ├── services/            # Business logic
 │   └── authService.js
 ├── app.js              # Express app setup
 ├── server.js           # Server entry point
+├── database_schema.sql # PostgreSQL schema
 ├── package.json
 ├── .env
 └── README.md
 ```
+
+## Database Architecture
+
+The service uses a hybrid database approach:
+
+- **MongoDB**: Stores admin user data using Mongoose ODM
+- **PostgreSQL**: Stores user and role data using raw SQL queries for better performance and control
+
+### PostgreSQL Setup
+
+Before running the service, ensure your PostgreSQL database has the required tables. You can use the provided schema:
+
+```bash
+# Run the database schema
+psql -U your_username -d your_database -f database_schema.sql
+```
+
+The schema includes:
+
+- `users` table with soft delete support
+- `roles` and `permissions` tables with many-to-many relationship
+- Proper indexes for optimized queries
+- Sample data for default roles and permissions
 
 ## Environment Variables
 
