@@ -5,6 +5,10 @@ const tripSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
+  tripId: {
+    type: String,
+    unique: true
+  },
   userId: {
     type: String,
     required: true
