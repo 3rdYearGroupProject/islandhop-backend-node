@@ -389,6 +389,54 @@ const getUserStats = async (req, res, next) => {
   }
 };
 
+// @desc    Get total user count from all user account tables
+// @route   GET /api/admin/users/total-count
+// @access  Private
+const getTotalUserCount = async (req, res, next) => {
+  try {
+    // Query to get count from all user account tables
+    const totalCountQuery = `
+      SELECT 
+        (SELECT COUNT(*) FROM admin_accounts) as admin_count,
+        (SELECT COUNT(*) FROM driver_accounts) as driver_count,
+        (SELECT COUNT(*) FROM guide_accounts) as guide_count,
+        (SELECT COUNT(*) FROM support_accounts) as support_count,
+        (SELECT COUNT(*) FROM tourist_accounts) as tourist_count,
+        (
+          (SELECT COUNT(*) FROM admin_accounts) +
+          (SELECT COUNT(*) FROM driver_accounts) +
+          (SELECT COUNT(*) FROM guide_accounts) +
+          (SELECT COUNT(*) FROM support_accounts) +
+          (SELECT COUNT(*) FROM tourist_accounts)
+        ) as total_count
+    `;
+
+    const result = await executeQuery(totalCountQuery);
+    const counts = result[0];
+
+    logger.info("Total user count retrieved from all account tables");
+    console.log(counts);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers: parseInt(counts.total_count),
+        breakdown: {
+          adminAccounts: parseInt(counts.admin_count),
+          driverAccounts: parseInt(counts.driver_count),
+          guideAccounts: parseInt(counts.guide_count),
+          supportAccounts: parseInt(counts.support_count),
+          touristAccounts: parseInt(counts.tourist_count),
+        },
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error("Error getting total user count:", error);
+    next(error);
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -396,4 +444,5 @@ module.exports = {
   deleteUser,
   toggleUserStatus,
   getUserStats,
+  getTotalUserCount,
 };
