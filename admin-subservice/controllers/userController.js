@@ -1,7 +1,6 @@
 const Joi = require("joi");
-const { User } = require("../models/User");
+const { executeQuery, executeNonQuery } = require("../config/postgresql");
 const { logger } = require("../middlewares/errorHandler");
-const { Op } = require("sequelize");
 
 // Validation schemas
 const updateUserSchema = Joi.object({
@@ -29,48 +28,99 @@ const getAllUsers = async (req, res, next) => {
       isActive,
       isVerified,
       search,
-      sortBy = "createdAt",
+      sortBy = "created_at",
       sortOrder = "DESC",
     } = req.query;
 
-    // Build where clause
-    const whereClause = {};
+    // Build WHERE conditions
+    const conditions = [];
+    const replacements = {};
 
-    if (userType) whereClause.userType = userType;
-    if (isActive !== undefined) whereClause.isActive = isActive === "true";
-    if (isVerified !== undefined)
-      whereClause.isVerified = isVerified === "true";
+    if (userType) {
+      conditions.push(`"user_type" = :userType`);
+      replacements.userType = userType;
+    }
+
+    if (isActive !== undefined) {
+      conditions.push(`"is_active" = :isActive`);
+      replacements.isActive = isActive === "true";
+    }
+
+    if (isVerified !== undefined) {
+      conditions.push(`"is_verified" = :isVerified`);
+      replacements.isVerified = isVerified === "true";
+    }
 
     if (search) {
-      whereClause[Op.or] = [
-        { firstName: { [Op.iLike]: `%${search}%` } },
-        { lastName: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
-      ];
+      conditions.push(`(
+        "first_name" ILIKE :search OR 
+        "last_name" ILIKE :search OR 
+        "email" ILIKE :search
+      )`);
+      replacements.search = `%${search}%`;
     }
+
+    // Add soft delete condition
+    conditions.push(`"deleted_at" IS NULL`);
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Calculate offset
     const offset = (page - 1) * limit;
+    replacements.limit = parseInt(limit);
+    replacements.offset = parseInt(offset);
+
+    // Validate sort column to prevent SQL injection
+    const allowedSortColumns = [
+      "created_at",
+      "updated_at",
+      "first_name",
+      "last_name",
+      "email",
+      "user_type",
+      "is_active",
+      "is_verified",
+    ];
+    const sortColumn = allowedSortColumns.includes(sortBy)
+      ? sortBy
+      : "created_at";
+    const sortDirection = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM users
+      ${whereClause}
+    `;
+
+    const countResult = await executeQuery(countQuery, replacements);
+    const totalCount = parseInt(countResult[0].total);
 
     // Get users with pagination
-    const { count, rows } = await User.findAndCountAll({
-      where: whereClause,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [[sortBy, sortOrder.toUpperCase()]],
-      attributes: { exclude: ["deletedAt"] },
-    });
+    const usersQuery = `
+      SELECT 
+        id, email, first_name, last_name, phone_number, date_of_birth,
+        profile_picture, is_active, is_verified, user_type, registration_date,
+        last_login_date, address, city, country, created_at, updated_at
+      FROM users
+      ${whereClause}
+      ORDER BY "${sortColumn}" ${sortDirection}
+      LIMIT :limit OFFSET :offset
+    `;
 
-    const totalPages = Math.ceil(count / limit);
+    const users = await executeQuery(usersQuery, replacements);
+
+    const totalPages = Math.ceil(totalCount / limit);
 
     res.status(200).json({
       success: true,
       data: {
-        users: rows,
+        users,
         pagination: {
           currentPage: parseInt(page),
           totalPages,
-          totalUsers: count,
+          totalUsers: totalCount,
           limit: parseInt(limit),
           hasNext: page < totalPages,
           hasPrev: page > 1,
@@ -89,11 +139,18 @@ const getUserById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findByPk(id, {
-      attributes: { exclude: ["deletedAt"] },
-    });
+    const query = `
+      SELECT 
+        id, email, first_name, last_name, phone_number, date_of_birth,
+        profile_picture, is_active, is_verified, user_type, registration_date,
+        last_login_date, address, city, country, created_at, updated_at
+      FROM users 
+      WHERE id = :id AND deleted_at IS NULL
+    `;
 
-    if (!user) {
+    const users = await executeQuery(query, { id });
+
+    if (users.length === 0) {
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -103,7 +160,7 @@ const getUserById = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        user,
+        user: users[0],
       },
     });
   } catch (error) {
@@ -128,25 +185,60 @@ const updateUser = async (req, res, next) => {
       });
     }
 
-    // Find user
-    const user = await User.findByPk(id);
-    if (!user) {
+    // Check if user exists
+    const checkQuery = `
+      SELECT id, email FROM users 
+      WHERE id = :id AND deleted_at IS NULL
+    `;
+    const existingUsers = await executeQuery(checkQuery, { id });
+
+    if (existingUsers.length === 0) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
-    // Update user
-    await user.update(value);
+    // Build update query dynamically
+    const updateFields = [];
+    const replacements = { id };
 
-    logger.info(`User updated: ${user.email}`);
+    Object.keys(value).forEach((key) => {
+      // Convert camelCase to snake_case for database columns
+      const dbColumn = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+      updateFields.push(`"${dbColumn}" = :${key}`);
+      replacements[key] = value[key];
+    });
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid fields to update",
+      });
+    }
+
+    // Add updated_at timestamp
+    updateFields.push(`"updated_at" = NOW()`);
+
+    const updateQuery = `
+      UPDATE users 
+      SET ${updateFields.join(", ")}
+      WHERE id = :id AND deleted_at IS NULL
+      RETURNING 
+        id, email, first_name, last_name, phone_number, date_of_birth,
+        profile_picture, is_active, is_verified, user_type, registration_date,
+        last_login_date, address, city, country, created_at, updated_at
+    `;
+
+    const updatedUsers = await executeQuery(updateQuery, replacements);
+
+    logger.info(`User updated: ${existingUsers[0].email}`);
 
     res.status(200).json({
       success: true,
       message: "User updated successfully",
       data: {
-        user,
+        user: updatedUsers[0],
       },
     });
   } catch (error) {
@@ -161,9 +253,14 @@ const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Find user
-    const user = await User.findByPk(id);
-    if (!user) {
+    // Check if user exists
+    const checkQuery = `
+      SELECT id, email FROM users 
+      WHERE id = :id AND deleted_at IS NULL
+    `;
+    const existingUsers = await executeQuery(checkQuery, { id });
+
+    if (existingUsers.length === 0) {
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -171,9 +268,15 @@ const deleteUser = async (req, res, next) => {
     }
 
     // Soft delete user
-    await user.destroy();
+    const deleteQuery = `
+      UPDATE users 
+      SET deleted_at = NOW(), updated_at = NOW()
+      WHERE id = :id AND deleted_at IS NULL
+    `;
 
-    logger.info(`User deleted: ${user.email}`);
+    await executeNonQuery(deleteQuery, { id });
+
+    logger.info(`User deleted: ${existingUsers[0].email}`);
 
     res.status(200).json({
       success: true,
@@ -199,9 +302,14 @@ const toggleUserStatus = async (req, res, next) => {
       });
     }
 
-    // Find user
-    const user = await User.findByPk(id);
-    if (!user) {
+    // Check if user exists
+    const checkQuery = `
+      SELECT id, email FROM users 
+      WHERE id = :id AND deleted_at IS NULL
+    `;
+    const existingUsers = await executeQuery(checkQuery, { id });
+
+    if (existingUsers.length === 0) {
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -209,17 +317,29 @@ const toggleUserStatus = async (req, res, next) => {
     }
 
     // Update status
-    await user.update({ isActive });
+    const updateQuery = `
+      UPDATE users 
+      SET is_active = :isActive, updated_at = NOW()
+      WHERE id = :id AND deleted_at IS NULL
+      RETURNING 
+        id, email, first_name, last_name, phone_number, date_of_birth,
+        profile_picture, is_active, is_verified, user_type, registration_date,
+        last_login_date, address, city, country, created_at, updated_at
+    `;
+
+    const updatedUsers = await executeQuery(updateQuery, { id, isActive });
 
     logger.info(
-      `User ${isActive ? "activated" : "deactivated"}: ${user.email}`
+      `User ${isActive ? "activated" : "deactivated"}: ${
+        existingUsers[0].email
+      }`
     );
 
     res.status(200).json({
       success: true,
       message: `User ${isActive ? "activated" : "deactivated"} successfully`,
       data: {
-        user,
+        user: updatedUsers[0],
       },
     });
   } catch (error) {
@@ -232,30 +352,35 @@ const toggleUserStatus = async (req, res, next) => {
 // @access  Private
 const getUserStats = async (req, res, next) => {
   try {
-    const stats = await Promise.all([
-      User.count(),
-      User.count({ where: { isActive: true } }),
-      User.count({ where: { isVerified: true } }),
-      User.count({ where: { userType: "tourist" } }),
-      User.count({ where: { userType: "driver" } }),
-      User.count({ where: { userType: "guide" } }),
-    ]);
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_verified = true THEN 1 END) as verified_users,
+        COUNT(CASE WHEN user_type = 'tourist' THEN 1 END) as tourists,
+        COUNT(CASE WHEN user_type = 'driver' THEN 1 END) as drivers,
+        COUNT(CASE WHEN user_type = 'guide' THEN 1 END) as guides
+      FROM users 
+      WHERE deleted_at IS NULL
+    `;
 
-    const [totalUsers, activeUsers, verifiedUsers, tourists, drivers, guides] =
-      stats;
+    const stats = await executeQuery(statsQuery);
+    const result = stats[0];
 
     res.status(200).json({
       success: true,
       data: {
-        totalUsers,
-        activeUsers,
-        inactiveUsers: totalUsers - activeUsers,
-        verifiedUsers,
-        unverifiedUsers: totalUsers - verifiedUsers,
+        totalUsers: parseInt(result.total_users),
+        activeUsers: parseInt(result.active_users),
+        inactiveUsers:
+          parseInt(result.total_users) - parseInt(result.active_users),
+        verifiedUsers: parseInt(result.verified_users),
+        unverifiedUsers:
+          parseInt(result.total_users) - parseInt(result.verified_users),
         userTypes: {
-          tourists,
-          drivers,
-          guides,
+          tourists: parseInt(result.tourists),
+          drivers: parseInt(result.drivers),
+          guides: parseInt(result.guides),
         },
       },
     });
