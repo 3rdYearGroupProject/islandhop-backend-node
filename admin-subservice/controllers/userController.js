@@ -140,7 +140,7 @@ const updateUser = async (req, res, next) => {
     // Update user
     await user.update(value);
 
-    logger.info(`User updated by admin ${req.admin.email}: ${user.email}`);
+    logger.info(`User updated: ${user.email}`);
 
     res.status(200).json({
       success: true,
@@ -173,7 +173,7 @@ const deleteUser = async (req, res, next) => {
     // Soft delete user
     await user.destroy();
 
-    logger.info(`User deleted by admin ${req.admin.email}: ${user.email}`);
+    logger.info(`User deleted: ${user.email}`);
 
     res.status(200).json({
       success: true,
@@ -212,9 +212,7 @@ const toggleUserStatus = async (req, res, next) => {
     await user.update({ isActive });
 
     logger.info(
-      `User ${isActive ? "activated" : "deactivated"} by admin ${
-        req.admin.email
-      }: ${user.email}`
+      `User ${isActive ? "activated" : "deactivated"}: ${user.email}`
     );
 
     res.status(200).json({

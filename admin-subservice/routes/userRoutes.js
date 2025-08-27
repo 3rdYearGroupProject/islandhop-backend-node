@@ -8,21 +8,13 @@ const {
   toggleUserStatus,
   getUserStats,
 } = require("../controllers/userController");
-const { authenticateToken, checkPermission } = require("../middlewares/auth");
 
-// Apply authentication to all routes
-router.use(authenticateToken);
-
-// User management routes (require user_management permission)
-router.get("/", checkPermission("user_management"), getAllUsers);
-router.get("/stats", checkPermission("user_management"), getUserStats);
-router.get("/:id", checkPermission("user_management"), getUserById);
-router.put("/:id", checkPermission("user_management"), updateUser);
-router.delete("/:id", checkPermission("user_management"), deleteUser);
-router.patch(
-  "/:id/status",
-  checkPermission("user_management"),
-  toggleUserStatus
-);
+// User management routes
+router.get("/", getAllUsers);
+router.get("/stats", getUserStats);
+router.get("/:id", getUserById);
+router.put("/:id", updateUser);
+router.delete("/:id", deleteUser);
+router.patch("/:id/status", toggleUserStatus);
 
 module.exports = router;
