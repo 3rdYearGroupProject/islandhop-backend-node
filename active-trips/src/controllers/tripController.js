@@ -1,5 +1,22 @@
 const Trip = require('../models/Trip');
 const axios = require('axios');
+const mongoose = require('mongoose');
+
+// Chat database connection and schema
+const chatDbConnection = mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_chat');
+
+const groupSchema = new mongoose.Schema({
+  group_name: String,
+  member_ids: [String],
+  admin_id: String,
+  trip_id: String,
+  created_at: Date,
+  description: String,
+  group_type: String,
+  _class: String
+}, { collection: 'groups' });
+
+const Group = chatDbConnection.model('Group', groupSchema);
 
 // Set driver for a trip
 const setDriver = async (req, res) => {
@@ -616,8 +633,8 @@ const acceptDriver = async (req, res) => {
   console.log('[ACCEPT_DRIVER] Request body:', req.body);
   
   try {
-    const { tripId, email } = req.body;
-    console.log('[ACCEPT_DRIVER] Extracted tripId:', tripId, 'email:', email);
+    const { tripId, email, driverUID, adminID } = req.body;
+    console.log('[ACCEPT_DRIVER] Extracted tripId:', tripId, 'email:', email, 'driverUID:', driverUID, 'adminID:', adminID);
 
     if (!tripId || !email) {
       console.log('[ACCEPT_DRIVER] Validation failed - missing required fields');
@@ -628,17 +645,127 @@ const acceptDriver = async (req, res) => {
     }
 
     console.log('[ACCEPT_DRIVER] Attempting to update driver status in database');
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      tripId,
-      {
-        driver_status: 1
-      },
-      { new: true }
-    );
+    
+    // Try to find trip by MongoDB ObjectId first, then by custom tripId field
+    let updatedTrip;
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(tripId);
+    
+    if (isValidObjectId) {
+      console.log('[ACCEPT_DRIVER] Using MongoDB ObjectId search');
+      updatedTrip = await Trip.findByIdAndUpdate(
+        tripId,
+        {
+          driver_status: 1
+        },
+        { new: true }
+      );
+    } else {
+      console.log('[ACCEPT_DRIVER] Using custom tripId field search');
+      updatedTrip = await Trip.findOneAndUpdate(
+        { tripId: tripId },
+        {
+          driver_status: 1
+        },
+        { new: true }
+      );
+    }
+    
     console.log('[ACCEPT_DRIVER] Database update completed');
 
+    // Continue to chat group update even if trip not found (for testing purposes)
+    let tripUpdateSuccess = false;
     if (!updatedTrip) {
-      console.log('[ACCEPT_DRIVER] Trip not found in database');
+      console.log('[ACCEPT_DRIVER] Trip not found in database, but continuing with chat group update');
+    } else {
+      tripUpdateSuccess = true;
+      console.log('[ACCEPT_DRIVER] Trip found and updated successfully');
+    }
+
+    // Add driver to chat group if driverUID is provided
+    if (driverUID) {
+      try {
+        console.log('[ACCEPT_DRIVER] Attempting to add driver to chat group');
+        
+        // Use the tripId directly for chat group search (always use the provided tripId, not MongoDB _id)
+        const group = await Group.findOne({ trip_id: tripId });
+        
+        if (group) {
+          console.log('[ACCEPT_DRIVER] Found chat group for tripId:', tripId);
+          console.log('[ACCEPT_DRIVER] Current member_ids:', group.member_ids);
+          
+          // Check if driver is already in the group
+          if (!group.member_ids.includes(driverUID)) {
+            // Add driver to member_ids array
+            const updatedGroup = await Group.findByIdAndUpdate(
+              group._id,
+              {
+                $addToSet: { member_ids: driverUID }
+              },
+              { new: true }
+            );
+            
+            console.log(`[ACCEPT_DRIVER] Driver ${driverUID} added to chat group for trip ${tripId}`);
+            console.log('[ACCEPT_DRIVER] Updated group member_ids:', updatedGroup.member_ids);
+            
+            // Return success response for chat group update
+            return res.json({
+              success: true,
+              message: tripUpdateSuccess ? 'Driver accepted and added to chat group successfully' : 'Driver added to chat group successfully (trip not found in database)',
+              data: {
+                tripUpdateSuccess,
+                tripData: updatedTrip,
+                chatGroupUpdated: true,
+                newMemberIds: updatedGroup.member_ids
+              }
+            });
+          } else {
+            console.log(`[ACCEPT_DRIVER] Driver ${driverUID} already exists in chat group`);
+            
+            // Return success response even if driver already in group
+            return res.json({
+              success: true,
+              message: tripUpdateSuccess ? 'Driver accepted successfully (already in chat group)' : 'Driver already in chat group (trip not found in database)',
+              data: {
+                tripUpdateSuccess,
+                tripData: updatedTrip,
+                chatGroupUpdated: false,
+                message: 'Driver already in group'
+              }
+            });
+          }
+        } else {
+          console.log(`[ACCEPT_DRIVER] No chat group found for tripId: ${tripId}`);
+          
+          if (!tripUpdateSuccess) {
+            return res.status(404).json({
+              success: false,
+              message: 'Trip not found in database and no chat group found',
+              data: {
+                tripUpdateSuccess: false,
+                chatGroupFound: false
+              }
+            });
+          }
+        }
+      } catch (chatError) {
+        console.error('[ACCEPT_DRIVER] Error updating chat group:', chatError);
+        console.error('[ACCEPT_DRIVER] Chat error message:', chatError.message);
+        
+        if (!tripUpdateSuccess) {
+          return res.status(500).json({
+            success: false,
+            message: 'Trip not found and error updating chat group',
+            error: chatError.message
+          });
+        }
+        // Continue execution if trip was updated successfully
+      }
+    } else {
+      console.log('[ACCEPT_DRIVER] No driverUID provided, skipping chat group update');
+    }
+
+    // If we reach here and trip was not found, return error
+    if (!tripUpdateSuccess) {
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
