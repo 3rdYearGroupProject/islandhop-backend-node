@@ -2,24 +2,17 @@ const express = require("express");
 const router = express.Router();
 const {
   registerAdmin,
-  loginAdmin,
-  getProfile,
-  updateProfile,
-  changePassword,
+  getAllAdmins,
+  getAdminById,
+  updateAdmin,
+  deleteAdmin,
 } = require("../controllers/authController");
-const { authenticateToken, checkSuperAdmin } = require("../middlewares/auth");
 
-// Public routes
-router.post("/login", loginAdmin);
-
-// Protected routes
-router.use(authenticateToken); // Apply authentication to all routes below
-
-router.get("/profile", getProfile);
-router.put("/profile", updateProfile);
-router.put("/change-password", changePassword);
-
-// Super admin only routes
-router.post("/register", checkSuperAdmin, registerAdmin);
+// Admin management routes
+router.post("/register", registerAdmin);
+router.get("/admins", getAllAdmins);
+router.get("/admins/:id", getAdminById);
+router.put("/admins/:id", updateAdmin);
+router.delete("/admins/:id", deleteAdmin);
 
 module.exports = router;

@@ -161,7 +161,7 @@ const createRole = async (req, res, next) => {
       ],
     });
 
-    logger.info(`Role created by admin ${req.admin.email}: ${name}`);
+    logger.info(`Role created: ${name}`);
 
     res.status(201).json({
       success: true,
@@ -224,7 +224,7 @@ const updateRole = async (req, res, next) => {
       ],
     });
 
-    logger.info(`Role updated by admin ${req.admin.email}: ${role.name}`);
+    logger.info(`Role updated: ${role.name}`);
 
     res.status(200).json({
       success: true,
@@ -257,7 +257,7 @@ const deleteRole = async (req, res, next) => {
     // Delete role
     await role.destroy();
 
-    logger.info(`Role deleted by admin ${req.admin.email}: ${role.name}`);
+    logger.info(`Role deleted: ${role.name}`);
 
     res.status(200).json({
       success: true,
@@ -337,7 +337,7 @@ const createPermission = async (req, res, next) => {
       action,
     });
 
-    logger.info(`Permission created by admin ${req.admin.email}: ${name}`);
+    logger.info(`Permission created: ${name}`);
 
     res.status(201).json({
       success: true,
@@ -370,9 +370,7 @@ const deletePermission = async (req, res, next) => {
     // Delete permission
     await permission.destroy();
 
-    logger.info(
-      `Permission deleted by admin ${req.admin.email}: ${permission.name}`
-    );
+    logger.info(`Permission deleted: ${permission.name}`);
 
     res.status(200).json({
       success: true,
