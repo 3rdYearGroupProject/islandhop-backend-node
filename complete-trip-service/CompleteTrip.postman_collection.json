@@ -1,0 +1,419 @@
+{
+	"info": {
+		"_postman_id": "complete-trip-service-collection",
+		"name": "Complete Trip Service",
+		"description": "Complete Trip Management Microservice API Collection for IslandHop",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5007",
+			"type": "string"
+		},
+		{
+			"key": "tripId",
+			"value": "68adfeac01e20ecea620ef27",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/health",
+					"host": ["{{baseUrl}}"],
+					"path": ["health"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start Trip",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/start-trip",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "start-trip"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Confirm Start",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/confirm-start",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "confirm-start"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start Day 1",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"metervalue\": 12500\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/start-day-1",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "start-day-1"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Confirm Day 1 Start",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/confirm-day-1-start",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "confirm-day-1-start"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "End Day 1",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"metervalue\": 12650,\n  \"deductvalue\": 10,\n  \"note\": \"Fuel stop deduction\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/end-day-1",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "end-day-1"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Confirm Day 1 End",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/confirm-day-1-end",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "confirm-day-1-end"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start Day 2",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"metervalue\": 12650\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/start-day-2",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "start-day-2"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "End Day 2",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"metervalue\": 12800,\n  \"deductvalue\": 5,\n  \"note\": \"Parking fee deduction\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/end-day-2",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "end-day-2"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Start Day 3",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"metervalue\": 12800\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/start-day-3",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "start-day-3"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "End Day 3",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"metervalue\": 12950,\n  \"deductvalue\": 0,\n  \"note\": \"Trip completed successfully\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/end-day-3",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "end-day-3"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Day 1 Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/day-1-info?tripId={{tripId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "day-1-info"],
+					"query": [
+						{
+							"key": "tripId",
+							"value": "{{tripId}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Day 2 Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/day-2-info?tripId={{tripId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "day-2-info"],
+					"query": [
+						{
+							"key": "tripId",
+							"value": "{{tripId}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Day 3 Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/day-3-info?tripId={{tripId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "day-3-info"],
+					"query": [
+						{
+							"key": "tripId",
+							"value": "{{tripId}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Total Distance",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/total-distance?tripId={{tripId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "total-distance"],
+					"query": [
+						{
+							"key": "tripId",
+							"value": "{{tripId}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "End Trip",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/end-trip",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "end-trip"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Confirm End",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/confirm-end",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "confirm-end"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Driver Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"rate\": 5,\n  \"review\": \"Excellent driver, very professional and safe driving throughout the trip.\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/driver-review",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "driver-review"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Guide Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"{{tripId}}\",\n  \"rate\": 4,\n  \"review\": \"Very knowledgeable guide with great insights about local attractions and culture.\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/trips/guide-review",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "trips", "guide-review"]
+				}
+			},
+			"response": []
+		}
+	]
+}
