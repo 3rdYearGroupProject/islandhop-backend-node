@@ -412,10 +412,10 @@ const getTotalUserCount = async (req, res, next) => {
     `;
 
     const result = await executeQuery(totalCountQuery);
-    const counts = result[0];
+    const counts = result;
 
     logger.info("Total user count retrieved from all account tables");
-    console.log(counts);
+    console.log("tharusha", result);
 
     res.status(200).json({
       success: true,
