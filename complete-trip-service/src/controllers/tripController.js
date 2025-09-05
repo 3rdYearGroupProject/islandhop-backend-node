@@ -722,6 +722,52 @@ const driverReview = async (req, res, next) => {
   }
 };
 
+// @desc    Get completed trip by driver email
+// @route   GET /api/trips/driver/:driverEmail
+// @access  Public
+const getCompletedTripByDriverEmail = async (req, res, next) => {
+  console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Function called');
+  console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Request params:', req.params);
+  
+  try {
+    const { driverEmail } = req.params;
+    console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Extracted driverEmail:', driverEmail);
+
+    if (!driverEmail) {
+      console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Error: Driver email is required');
+      return res.status(400).json({
+        success: false,
+        error: 'Driver email is required'
+      });
+    }
+
+    console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Finding completed trips by driver email');
+    const trips = await CompletedTrip.find({ driver_email: driverEmail });
+    console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Found trips count:', trips.length);
+
+    if (trips.length === 0) {
+      console.log('[GET_COMPLETED_TRIP_BY_DRIVER] No completed trips found for driver');
+      return res.status(404).json({
+        success: false,
+        error: 'No completed trips found for this driver'
+      });
+    }
+
+    console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Sending success response with trip data');
+    res.status(200).json({
+      success: true,
+      data: {
+        driverEmail: driverEmail,
+        trips: trips,
+        totalTrips: trips.length
+      }
+    });
+  } catch (error) {
+    console.log('[GET_COMPLETED_TRIP_BY_DRIVER] Error occurred:', error.message);
+    next(error);
+  }
+};
+
 module.exports = {
   startTrip,
   confirmStart,
@@ -734,5 +780,6 @@ module.exports = {
   getDayInfo,
   getTotalDistance,
   guideReview,
-  driverReview
+  driverReview,
+  getCompletedTripByDriverEmail
 };

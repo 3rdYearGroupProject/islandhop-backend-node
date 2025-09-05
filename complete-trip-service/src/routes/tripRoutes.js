@@ -11,7 +11,8 @@ const {
   getDayInfo,
   getTotalDistance,
   guideReview,
-  driverReview
+  driverReview,
+  getCompletedTripByDriverEmail
 } = require('../controllers/tripController');
 
 const router = express.Router();
@@ -31,6 +32,7 @@ router.post('/confirm-day-:dayNumber-end', confirmDayEnd);
 // Information routes
 router.get('/day-:dayNumber-info', getDayInfo);
 router.get('/total-distance', getTotalDistance);
+router.get('/driver/:driverEmail', getCompletedTripByDriverEmail);
 
 // Review routes
 router.post('/guide-review', guideReview);
