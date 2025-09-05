@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 // Schema for payed_trips_advance collection
 const payedTripAdvanceSchema = new mongoose.Schema({
+  _id: {
+    type: String,
+    required: true
+  },
   userId: {
     type: String,
     required: true
@@ -87,11 +91,16 @@ const payedTripAdvanceSchema = new mongoose.Schema({
     type: String
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  _id: false
 });
 
 // Schema for completed_trips collection
 const completedTripSchema = new mongoose.Schema({
+  _id: {
+    type: String,
+    required: true
+  },
   userId: {
     type: String,
     required: true
@@ -244,7 +253,8 @@ const completedTripSchema = new mongoose.Schema({
     default: ''
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  _id: false
 });
 
 const PayedTripAdvance = mongoose.model('PayedTripAdvance', payedTripAdvanceSchema, 'payed_trips_advance');
