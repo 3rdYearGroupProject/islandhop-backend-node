@@ -36,14 +36,36 @@ const setDriver = async (req, res) => {
     }
 
     console.log('[SET_DRIVER] Attempting to update trip in database');
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      tripId,
-      {
-        driver_email: email,
-        driver_status: 1
-      },
-      { new: true }
-    );
+    let updatedTrip;
+    // Use collection.findOneAndUpdate to avoid Mongoose ObjectId casting
+    try {
+      const result = await Trip.collection.findOneAndUpdate(
+        { _id: tripId },
+        {
+          $set: {
+            driver_email: email,
+            driver_status: 1
+          }
+        },
+        { returnDocument: 'after' }
+      );
+      
+      if (result && result.value) {
+        // Convert the raw MongoDB document back to a Mongoose document
+        updatedTrip = new Trip(result.value);
+      }
+    } catch (collectionError) {
+      console.log('[SET_DRIVER] Direct collection search failed, trying tripId field');
+      // Fallback to searching by tripId field
+      updatedTrip = await Trip.findOneAndUpdate(
+        { tripId: tripId },
+        {
+          driver_email: email,
+          driver_status: 1
+        },
+        { new: true }
+      );
+    }
     console.log('[SET_DRIVER] Database update completed');
 
     if (!updatedTrip) {
@@ -388,7 +410,7 @@ const newActivateTrip = async (req, res) => {
         if (driverResponse.data && driverResponse.data.email) {
           console.log('[NEW_ACTIVATE_TRIP] Driver email received:', driverResponse.data.email);
           updateData.driver_email = driverResponse.data.email;
-          updateData.driver_status = 1;
+          updateData.driver_status = 0;
           driverAssigned = true;
           console.log(`[NEW_ACTIVATE_TRIP] Driver assigned: ${driverResponse.data.email}`);
 
@@ -432,7 +454,7 @@ const newActivateTrip = async (req, res) => {
         if (guideResponse.data && guideResponse.data.email) {
           console.log('[NEW_ACTIVATE_TRIP] Guide email received:', guideResponse.data.email);
           updateData.guide_email = guideResponse.data.email;
-          updateData.guide_status = 1;
+          updateData.guide_status = 0;
           guideAssigned = true;
           console.log(`[NEW_ACTIVATE_TRIP] Guide assigned: ${guideResponse.data.email}`);
 
@@ -527,7 +549,8 @@ const getTripsByUserId = async (req, res) => {
     }
 
     console.log('[GET_TRIPS_BY_USER_ID] Trips found for user:', trips.map(trip => ({
-      id: trip._id,
+      id: trip._id || trip.id,
+      tripId: trip._id || trip.id,
       tripName: trip.tripName,
       startDate: trip.startDate,
       endDate: trip.endDate,
@@ -596,7 +619,8 @@ const getTripsByDriverEmail = async (req, res) => {
     }
 
     console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Trips found for driver:', trips.map(trip => ({
-      id: trip._id,
+      id: trip._id || trip.id,
+      tripId: trip._id || trip.id,
       tripName: trip.tripName,
       startDate: trip.startDate,
       endDate: trip.endDate,
@@ -662,7 +686,7 @@ const acceptDriver = async (req, res) => {
     } else {
       console.log('[ACCEPT_DRIVER] Using custom tripId field search');
       updatedTrip = await Trip.findOneAndUpdate(
-        { tripId: tripId },
+        { _id: tripId },
         {
           driver_status: 1
         },
