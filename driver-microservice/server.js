@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const controllers = require('./controllers/noAuthControllers');
+const controllers = require('./controllers/authControllers');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
