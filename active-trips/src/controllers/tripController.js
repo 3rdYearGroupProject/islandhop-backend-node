@@ -651,6 +651,75 @@ const getTripsByDriverEmail = async (req, res) => {
   }
 };
 
+// Get all trips for a given guide email
+const getTripsByGuideEmail = async (req, res) => {
+  console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Function called');
+  console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Request params:', req.params);
+  console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Request query:', req.query);
+  
+  try {
+    const { guideEmail } = req.params;
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Extracted guideEmail:', guideEmail);
+
+    if (!guideEmail) {
+      console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Validation failed - missing guideEmail');
+      return res.status(400).json({
+        success: false,
+        message: 'guideEmail is required'
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Searching for trips in database for guideEmail:', guideEmail);
+    const trips = await Trip.find({ guide_email: guideEmail });
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Database search completed');
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Found', trips.length, 'trips for guide');
+
+    if (trips.length === 0) {
+      console.log('[GET_TRIPS_BY_GUIDE_EMAIL] No trips found for this guide');
+      return res.json({
+        success: true,
+        message: 'No trips found for this guide',
+        data: {
+          guideEmail: guideEmail,
+          trips: [],
+          totalTrips: 0
+        }
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Trips found for guide:', trips.map(trip => ({
+      id: trip._id || trip.id,
+      tripId: trip._id || trip.id,
+      tripName: trip.tripName,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      userId: trip.userId,
+      guide_status: trip.guide_status,
+      vehicleType: trip.vehicleType
+    })));
+
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Sending success response with trips data');
+
+    res.json({
+      success: true,
+      message: 'Trips retrieved successfully for guide',
+      data: {
+        guideEmail: guideEmail,
+        trips: trips,
+        totalTrips: trips.length
+      }
+    });
+  } catch (error) {
+    console.error('[GET_TRIPS_BY_GUIDE_EMAIL] Error occurred:', error);
+    console.error('[GET_TRIPS_BY_GUIDE_EMAIL] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 // Accept driver for a trip
 const acceptDriver = async (req, res) => {
   console.log('[ACCEPT_DRIVER] Function called');
@@ -877,6 +946,7 @@ module.exports = {
   newActivateTrip,
   getTripsByUserId,
   getTripsByDriverEmail,
+  getTripsByGuideEmail,
   acceptDriver,
   acceptGuide
 };
