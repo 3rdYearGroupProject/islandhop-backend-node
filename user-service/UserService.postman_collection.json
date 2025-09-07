@@ -1,0 +1,160 @@
+{
+	"info": {
+		"name": "User Service API",
+		"description": "API collection for testing the User Service microservice endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the service is running and healthy"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Support Users",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/users/support",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"users",
+						"support"
+					]
+				},
+				"description": "Get all support staff with their profiles"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Driver Users",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/users/driver",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"users",
+						"driver"
+					]
+				},
+				"description": "Get all drivers with their profiles"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Guide Users",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/users/guide",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"users",
+						"guide"
+					]
+				},
+				"description": "Get all guides with their profiles"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Tourist Users",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/users/tourist",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"users",
+						"tourist"
+					]
+				},
+				"description": "Get all tourists with their profiles"
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid Role Test",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/users/invalid",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"users",
+						"invalid"
+					]
+				},
+				"description": "Test validation with an invalid role parameter"
+			},
+			"response": []
+		},
+		{
+			"name": "404 Test",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:4011/nonexistent",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4011",
+					"path": [
+						"nonexistent"
+					]
+				},
+				"description": "Test 404 handling for non-existent endpoints"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4011"
+		}
+	]
+}
