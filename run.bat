@@ -4,47 +4,47 @@ echo.
 
 echo Installing dependencies and starting Active Trips Service...
 cd active-trips
-start "Active Trips Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Active Trips Service - Install & Run" cmd /k "prompt ActiveTrips$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Complete Trip Service...
 cd complete-trip-service
-start "Complete Trip Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Complete Trip Service - Install & Run" cmd /k "prompt CompleteTrip$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Route Service...
 cd route-service
-start "Route Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Route Service - Install & Run" cmd /k "prompt RouteService$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Schedule Service...
 cd schedule-service
-start "Schedule Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Schedule Service - Install & Run" cmd /k "prompt ScheduleService$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Scoring Service...
 cd scoring-service
-start "Scoring Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Scoring Service - Install & Run" cmd /k "prompt ScoringService$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Support Agent Service...
 cd support-agent-service
-start "Support Agent Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Support Agent Service - Install & Run" cmd /k "prompt SupportAgent$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Verification Service...
 cd verification-service
-start "Verification Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Verification Service - Install & Run" cmd /k "prompt VerificationService$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Panic Alerts Service...
 cd panic-alerts-service
-start "Panic Alerts Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Panic Alerts Service - Install & Run" cmd /k "prompt PanicAlerts$G $P$G && npm install && npm run dev"
 cd ..
 
 echo Installing dependencies and starting Email Service...
 cd email-service
-start "Email Service - Install & Run" cmd /k "npm install && npm run dev"
+start "Email Service - Install & Run" cmd /k "prompt EmailService$G $P$G && npm install && npm run dev"
 cd ..
 
 echo.
