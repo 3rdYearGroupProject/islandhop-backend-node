@@ -1,0 +1,41 @@
+{
+  "name": "pooling-confirm-service",
+  "version": "1.0.0",
+  "description": "Microservice for confirming pooling trips and handling payments",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "winston": "^3.10.0",
+    "dotenv": "^16.3.1",
+    "joi": "^17.9.2",
+    "axios": "^1.5.0",
+    "uuid": "^9.0.0",
+    "moment": "^2.29.4",
+    "kafkajs": "^2.2.4",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "jest": "^29.6.4",
+    "supertest": "^6.3.3"
+  },
+  "keywords": [
+    "pooling",
+    "confirmation",
+    "payment",
+    "microservice",
+    "islandhop"
+  ],
+  "author": "IslandHop Team",
+  "license": "MIT"
+}
