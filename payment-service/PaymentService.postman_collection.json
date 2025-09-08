@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "Payment Service API",
+    "description": "Postman collection for Payment Service API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Charges",
+      "item": [
+        {
+          "name": "Get Charges",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4013/charges/get",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["charges", "get"]
+            }
+          }
+        },
+        {
+          "name": "Update Driver Charge",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverDailyCharge\": 1200\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4013/charges/driver",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["charges", "driver"]
+            }
+          }
+        },
+        {
+          "name": "Update Guide Charge",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guideDailyCharge\": 1800\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4013/charges/guide",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["charges", "guide"]
+            }
+          }
+        },
+        {
+          "name": "Update System Charge",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"systemChargePercentage\": 15\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4013/charges/system",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["charges", "system"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver",
+      "item": [
+        {
+          "name": "Create Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripId\": \"TRIP123\",\n  \"driverEmail\": \"driver@example.com\",\n  \"cost\": 2500\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4013/driver",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["driver"]
+            }
+          }
+        },
+        {
+          "name": "Pay Driver",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "evidence",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4013/driver/pay/TRIP123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["driver", "pay", "TRIP123"]
+            }
+          }
+        },
+        {
+          "name": "Get Driver by Trip ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4013/driver/TRIP123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["driver", "TRIP123"]
+            }
+          }
+        },
+        {
+          "name": "Get All Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4013/driver",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["driver"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Guide",
+      "item": [
+        {
+          "name": "Create Guide",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripId\": \"TRIP123\",\n  \"guideEmail\": \"guide@example.com\",\n  \"cost\": 3000\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4013/guide",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["guide"]
+            }
+          }
+        },
+        {
+          "name": "Pay Guide",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "evidence",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:4013/guide/pay/TRIP123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["guide", "pay", "TRIP123"]
+            }
+          }
+        },
+        {
+          "name": "Get Guide by Trip ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4013/guide/TRIP123",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["guide", "TRIP123"]
+            }
+          }
+        },
+        {
+          "name": "Get All Guides",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:4013/guide",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "4013",
+              "path": ["guide"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
