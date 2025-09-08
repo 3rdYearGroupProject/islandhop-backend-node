@@ -180,6 +180,16 @@ Returns the service health status.
 - `PORT`: Service port (default: 4015)
 - `MONGODB_URI`: MongoDB connection string
 - `NODE_ENV`: Environment (development/production)
+- `FRONTEND_URL`: Frontend application URL for CORS (default: http://localhost:3000)
+
+## CORS Configuration
+
+The service is configured to handle CORS requests with credentials support. It allows requests from:
+- The frontend URL specified in `FRONTEND_URL` environment variable
+- Default localhost:3000 and 127.0.0.1:3000
+- Additional frontend ports (3001) if needed
+
+This configuration prevents CORS issues when the frontend makes requests with credentials included.
 
 ## Database Collections
 
