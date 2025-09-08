@@ -2,8 +2,12 @@ const mongoose = require('mongoose');
 
 const tripSchema = new mongoose.Schema({
   _id: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     required: true
+  },
+  tripId: {
+    type: String,
+    unique: true
   },
   userId: {
     type: String,
@@ -99,7 +103,8 @@ const tripSchema = new mongoose.Schema({
   }
 }, {
   collection: 'payed_trips_advance',
-  versionKey: false
+  versionKey: false,
+  _id: false
 });
 
 module.exports = mongoose.model('Trip', tripSchema);
