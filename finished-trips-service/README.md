@@ -185,6 +185,7 @@ Returns the service health status.
 ## CORS Configuration
 
 The service is configured to handle CORS requests with credentials support. It allows requests from:
+
 - The frontend URL specified in `FRONTEND_URL` environment variable
 - Default localhost:3000 and 127.0.0.1:3000
 - Additional frontend ports (3001) if needed
