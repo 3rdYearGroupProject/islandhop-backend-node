@@ -72,7 +72,7 @@ const startTrip = async (req, res, next) => {
       ...tripData,
       dailyPlans: enhancedDailyPlans,
       started: 1,
-      startconfirmed: 0,
+      startconfirmed: 1,
       ended: 0,
       endconfirmed: 0,
       driver_reviewed: 0,
@@ -814,6 +814,37 @@ const getCompletedTripByGuideEmail = async (req, res, next) => {
   }
 };
 
+// @desc    Get trip data by _id
+// @route   GET /api/trips/trip/:id
+// @access  Public
+const getTripById = async (req, res, next) => {
+  console.log('[GET_TRIP_BY_ID] Function called');
+  console.log('[GET_TRIP_BY_ID] Request params:', req.params);
+
+  try {
+    const { id } = req.params;
+    console.log('[GET_TRIP_BY_ID] Extracted id:', id);
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Trip ID is required' });
+    }
+
+    console.log('[GET_TRIP_BY_ID] Fetching trip by ID');
+    const trip = await CompletedTrip.findById(id);
+    console.log('[GET_TRIP_BY_ID] Trip found:', trip ? 'Yes' : 'No');
+
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found' });
+    }
+
+    console.log('[GET_TRIP_BY_ID] Sending success response');
+    res.status(200).json({ success: true, data: trip });
+  } catch (error) {
+    console.log('[GET_TRIP_BY_ID] Error occurred:', error.message);
+    next(error);
+  }
+};
+
 module.exports = {
   startTrip,
   confirmStart,
@@ -828,5 +859,6 @@ module.exports = {
   guideReview,
   driverReview,
   getCompletedTripByDriverEmail,
-  getCompletedTripByGuideEmail
+  getCompletedTripByGuideEmail,
+  getTripById
 };
