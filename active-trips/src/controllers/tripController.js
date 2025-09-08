@@ -1,5 +1,22 @@
 const Trip = require('../models/Trip');
 const axios = require('axios');
+const mongoose = require('mongoose');
+
+// Chat database connection and schema
+const chatDbConnection = mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_chat');
+
+const groupSchema = new mongoose.Schema({
+  group_name: String,
+  member_ids: [String],
+  admin_id: String,
+  trip_id: String,
+  created_at: Date,
+  description: String,
+  group_type: String,
+  _class: String
+}, { collection: 'groups' });
+
+const Group = chatDbConnection.model('Group', groupSchema);
 
 // Set driver for a trip
 const setDriver = async (req, res) => {
@@ -19,14 +36,36 @@ const setDriver = async (req, res) => {
     }
 
     console.log('[SET_DRIVER] Attempting to update trip in database');
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      tripId,
-      {
-        driver_email: email,
-        driver_status: 1
-      },
-      { new: true }
-    );
+    let updatedTrip;
+    // Use collection.findOneAndUpdate to avoid Mongoose ObjectId casting
+    try {
+      const result = await Trip.collection.findOneAndUpdate(
+        { _id: tripId },
+        {
+          $set: {
+            driver_email: email,
+            driver_status: 1
+          }
+        },
+        { returnDocument: 'after' }
+      );
+      
+      if (result && result.value) {
+        // Convert the raw MongoDB document back to a Mongoose document
+        updatedTrip = new Trip(result.value);
+      }
+    } catch (collectionError) {
+      console.log('[SET_DRIVER] Direct collection search failed, trying tripId field');
+      // Fallback to searching by tripId field
+      updatedTrip = await Trip.findOneAndUpdate(
+        { tripId: tripId },
+        {
+          driver_email: email,
+          driver_status: 1
+        },
+        { new: true }
+      );
+    }
     console.log('[SET_DRIVER] Database update completed');
 
     if (!updatedTrip) {
@@ -371,7 +410,7 @@ const newActivateTrip = async (req, res) => {
         if (driverResponse.data && driverResponse.data.email) {
           console.log('[NEW_ACTIVATE_TRIP] Driver email received:', driverResponse.data.email);
           updateData.driver_email = driverResponse.data.email;
-          updateData.driver_status = 1;
+          updateData.driver_status = 0;
           driverAssigned = true;
           console.log(`[NEW_ACTIVATE_TRIP] Driver assigned: ${driverResponse.data.email}`);
 
@@ -415,7 +454,7 @@ const newActivateTrip = async (req, res) => {
         if (guideResponse.data && guideResponse.data.email) {
           console.log('[NEW_ACTIVATE_TRIP] Guide email received:', guideResponse.data.email);
           updateData.guide_email = guideResponse.data.email;
-          updateData.guide_status = 1;
+          updateData.guide_status = 0;
           guideAssigned = true;
           console.log(`[NEW_ACTIVATE_TRIP] Guide assigned: ${guideResponse.data.email}`);
 
@@ -510,7 +549,8 @@ const getTripsByUserId = async (req, res) => {
     }
 
     console.log('[GET_TRIPS_BY_USER_ID] Trips found for user:', trips.map(trip => ({
-      id: trip._id,
+      id: trip._id || trip.id,
+      tripId: trip._id || trip.id,
       tripName: trip.tripName,
       startDate: trip.startDate,
       endDate: trip.endDate,
@@ -579,7 +619,8 @@ const getTripsByDriverEmail = async (req, res) => {
     }
 
     console.log('[GET_TRIPS_BY_DRIVER_EMAIL] Trips found for driver:', trips.map(trip => ({
-      id: trip._id,
+      id: trip._id || trip.id,
+      tripId: trip._id || trip.id,
       tripName: trip.tripName,
       startDate: trip.startDate,
       endDate: trip.endDate,
@@ -610,14 +651,83 @@ const getTripsByDriverEmail = async (req, res) => {
   }
 };
 
+// Get all trips for a given guide email
+const getTripsByGuideEmail = async (req, res) => {
+  console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Function called');
+  console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Request params:', req.params);
+  console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Request query:', req.query);
+  
+  try {
+    const { guideEmail } = req.params;
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Extracted guideEmail:', guideEmail);
+
+    if (!guideEmail) {
+      console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Validation failed - missing guideEmail');
+      return res.status(400).json({
+        success: false,
+        message: 'guideEmail is required'
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Searching for trips in database for guideEmail:', guideEmail);
+    const trips = await Trip.find({ guide_email: guideEmail });
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Database search completed');
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Found', trips.length, 'trips for guide');
+
+    if (trips.length === 0) {
+      console.log('[GET_TRIPS_BY_GUIDE_EMAIL] No trips found for this guide');
+      return res.json({
+        success: true,
+        message: 'No trips found for this guide',
+        data: {
+          guideEmail: guideEmail,
+          trips: [],
+          totalTrips: 0
+        }
+      });
+    }
+
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Trips found for guide:', trips.map(trip => ({
+      id: trip._id || trip.id,
+      tripId: trip._id || trip.id,
+      tripName: trip.tripName,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      userId: trip.userId,
+      guide_status: trip.guide_status,
+      vehicleType: trip.vehicleType
+    })));
+
+    console.log('[GET_TRIPS_BY_GUIDE_EMAIL] Sending success response with trips data');
+
+    res.json({
+      success: true,
+      message: 'Trips retrieved successfully for guide',
+      data: {
+        guideEmail: guideEmail,
+        trips: trips,
+        totalTrips: trips.length
+      }
+    });
+  } catch (error) {
+    console.error('[GET_TRIPS_BY_GUIDE_EMAIL] Error occurred:', error);
+    console.error('[GET_TRIPS_BY_GUIDE_EMAIL] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 // Accept driver for a trip
 const acceptDriver = async (req, res) => {
   console.log('[ACCEPT_DRIVER] Function called');
   console.log('[ACCEPT_DRIVER] Request body:', req.body);
   
   try {
-    const { tripId, email } = req.body;
-    console.log('[ACCEPT_DRIVER] Extracted tripId:', tripId, 'email:', email);
+    const { tripId, email, driverUID, adminID } = req.body;
+    console.log('[ACCEPT_DRIVER] Extracted tripId:', tripId, 'email:', email, 'driverUID:', driverUID, 'adminID:', adminID);
 
     if (!tripId || !email) {
       console.log('[ACCEPT_DRIVER] Validation failed - missing required fields');
@@ -628,17 +738,127 @@ const acceptDriver = async (req, res) => {
     }
 
     console.log('[ACCEPT_DRIVER] Attempting to update driver status in database');
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      tripId,
-      {
-        driver_status: 1
-      },
-      { new: true }
-    );
+    
+    // Try to find trip by MongoDB ObjectId first, then by custom tripId field
+    let updatedTrip;
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(tripId);
+    
+    if (isValidObjectId) {
+      console.log('[ACCEPT_DRIVER] Using MongoDB ObjectId search');
+      updatedTrip = await Trip.findByIdAndUpdate(
+        tripId,
+        {
+          driver_status: 1
+        },
+        { new: true }
+      );
+    } else {
+      console.log('[ACCEPT_DRIVER] Using custom tripId field search');
+      updatedTrip = await Trip.findOneAndUpdate(
+        { _id: tripId },
+        {
+          driver_status: 1
+        },
+        { new: true }
+      );
+    }
+    
     console.log('[ACCEPT_DRIVER] Database update completed');
 
+    // Continue to chat group update even if trip not found (for testing purposes)
+    let tripUpdateSuccess = false;
     if (!updatedTrip) {
-      console.log('[ACCEPT_DRIVER] Trip not found in database');
+      console.log('[ACCEPT_DRIVER] Trip not found in database, but continuing with chat group update');
+    } else {
+      tripUpdateSuccess = true;
+      console.log('[ACCEPT_DRIVER] Trip found and updated successfully');
+    }
+
+    // Add driver to chat group if driverUID is provided
+    if (driverUID) {
+      try {
+        console.log('[ACCEPT_DRIVER] Attempting to add driver to chat group');
+        
+        // Use the tripId directly for chat group search (always use the provided tripId, not MongoDB _id)
+        const group = await Group.findOne({ trip_id: tripId });
+        
+        if (group) {
+          console.log('[ACCEPT_DRIVER] Found chat group for tripId:', tripId);
+          console.log('[ACCEPT_DRIVER] Current member_ids:', group.member_ids);
+          
+          // Check if driver is already in the group
+          if (!group.member_ids.includes(driverUID)) {
+            // Add driver to member_ids array
+            const updatedGroup = await Group.findByIdAndUpdate(
+              group._id,
+              {
+                $addToSet: { member_ids: driverUID }
+              },
+              { new: true }
+            );
+            
+            console.log(`[ACCEPT_DRIVER] Driver ${driverUID} added to chat group for trip ${tripId}`);
+            console.log('[ACCEPT_DRIVER] Updated group member_ids:', updatedGroup.member_ids);
+            
+            // Return success response for chat group update
+            return res.json({
+              success: true,
+              message: tripUpdateSuccess ? 'Driver accepted and added to chat group successfully' : 'Driver added to chat group successfully (trip not found in database)',
+              data: {
+                tripUpdateSuccess,
+                tripData: updatedTrip,
+                chatGroupUpdated: true,
+                newMemberIds: updatedGroup.member_ids
+              }
+            });
+          } else {
+            console.log(`[ACCEPT_DRIVER] Driver ${driverUID} already exists in chat group`);
+            
+            // Return success response even if driver already in group
+            return res.json({
+              success: true,
+              message: tripUpdateSuccess ? 'Driver accepted successfully (already in chat group)' : 'Driver already in chat group (trip not found in database)',
+              data: {
+                tripUpdateSuccess,
+                tripData: updatedTrip,
+                chatGroupUpdated: false,
+                message: 'Driver already in group'
+              }
+            });
+          }
+        } else {
+          console.log(`[ACCEPT_DRIVER] No chat group found for tripId: ${tripId}`);
+          
+          if (!tripUpdateSuccess) {
+            return res.status(404).json({
+              success: false,
+              message: 'Trip not found in database and no chat group found',
+              data: {
+                tripUpdateSuccess: false,
+                chatGroupFound: false
+              }
+            });
+          }
+        }
+      } catch (chatError) {
+        console.error('[ACCEPT_DRIVER] Error updating chat group:', chatError);
+        console.error('[ACCEPT_DRIVER] Chat error message:', chatError.message);
+        
+        if (!tripUpdateSuccess) {
+          return res.status(500).json({
+            success: false,
+            message: 'Trip not found and error updating chat group',
+            error: chatError.message
+          });
+        }
+        // Continue execution if trip was updated successfully
+      }
+    } else {
+      console.log('[ACCEPT_DRIVER] No driverUID provided, skipping chat group update');
+    }
+
+    // If we reach here and trip was not found, return error
+    if (!tripUpdateSuccess) {
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
@@ -726,6 +946,7 @@ module.exports = {
   newActivateTrip,
   getTripsByUserId,
   getTripsByDriverEmail,
+  getTripsByGuideEmail,
   acceptDriver,
   acceptGuide
 };

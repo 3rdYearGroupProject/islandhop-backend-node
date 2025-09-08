@@ -1,0 +1,169 @@
+{
+  "info": {
+    "name": "Pooling Confirm Service",
+    "description": "API collection for testing the Pooling Confirmation Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "API Documentation",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/docs",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "docs"]
+        }
+      }
+    },
+    {
+      "name": "Initiate Trip Confirmation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"groupId\": \"group123\",\n  \"userId\": \"user123\",\n  \"minMembers\": 3,\n  \"maxMembers\": 8,\n  \"tripStartDate\": \"2024-12-01T00:00:00.000Z\",\n  \"tripEndDate\": \"2024-12-05T00:00:00.000Z\",\n  \"confirmationHours\": 48,\n  \"totalAmount\": 40000,\n  \"pricePerPerson\": 10000,\n  \"currency\": \"LKR\",\n  \"paymentDeadlineHours\": 72,\n  \"tripDetails\": {\n    \"destinations\": [\"Kandy\", \"Nuwara Eliya\"],\n    \"activities\": [\"hiking\", \"sightseeing\"]\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/initiate",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "initiate"]
+        }
+      }
+    },
+    {
+      "name": "Confirm Participation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"user456\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/{{confirmedTripId}}/confirm",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "{{confirmedTripId}}", "confirm"]
+        }
+      }
+    },
+    {
+      "name": "Get Confirmation Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/{{confirmedTripId}}/status?userId={{userId}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "{{confirmedTripId}}", "status"],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{userId}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Cancel Confirmation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"user123\",\n  \"reason\": \"Insufficient members joined\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/{{confirmedTripId}}/cancel",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "{{confirmedTripId}}", "cancel"]
+        }
+      }
+    },
+    {
+      "name": "Get User Confirmed Trips",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/user/{{userId}}/trips?status=confirmed&page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "user", "{{userId}}", "trips"],
+          "query": [
+            {
+              "key": "status",
+              "value": "confirmed"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get All User Trips",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/user/{{userId}}/trips",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "user", "{{userId}}", "trips"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8074",
+      "type": "string"
+    },
+    {
+      "key": "confirmedTripId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user123",
+      "type": "string"
+    }
+  ]
+}

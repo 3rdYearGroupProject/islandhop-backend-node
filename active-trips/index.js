@@ -11,9 +11,24 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add CORS headers
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  const origin = req.headers.origin;
+  // Allow requests from localhost on any port for development
+  if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // For production, you should specify exact origins
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  }
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  
   next();
 });
 
