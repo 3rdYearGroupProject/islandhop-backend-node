@@ -47,6 +47,31 @@ cd email-service
 start "Email Service - Install & Run" cmd /k "prompt EmailService$G $P$G && npm install && npm run dev"
 cd ..
 
+echo Installing dependencies and starting User Service...
+cd user-service
+start "User Service - Install & Run" cmd /k "prompt UserService$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Installing dependencies and starting Guide Microservice...
+cd guide-microservice
+start "Guide Microservice - Install & Run" cmd /k "prompt GuideMicroservice$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Installing dependencies and starting Driver Microservice...
+cd driver-microservice
+start "Driver Microservice - Install & Run" cmd /k "prompt DriverMicroservice$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Installing dependencies and starting DB Migration Service...
+cd db-migration-service
+start "DB Migration Service - Install & Run" cmd /k "prompt DBMigrationService$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Installing dependencies and starting API Gateway...
+cd api-gateway
+start "API Gateway - Install & Run" cmd /k "prompt APIGateway$G $P$G && npm install && npm run dev"
+cd ..
+
 echo.
 echo All services have been started in separate windows!
 echo.
@@ -60,6 +85,11 @@ echo - Support Agent Service: Port 8061
 echo - Verification Service: Port 8060
 echo - Panic Alerts Service: Port 5000
 echo - Email Service: Port varies
+echo - User Service: Port 5001
+echo - Guide Microservice: Port 5002
+echo - Driver Microservice: Port 5003
+echo - DB Migration Service: Port 5004
+echo - API Gateway: Port 8000
 echo.
 echo Press any key to exit...
 pause >nul
