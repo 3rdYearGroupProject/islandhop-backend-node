@@ -72,6 +72,21 @@ cd api-gateway
 start "API Gateway - Install & Run" cmd /k "prompt APIGateway$G $P$G && npm install && npm run dev"
 cd ..
 
+echo Installing dependencies and starting Payment Service...
+cd payment-service
+start "Payment Service - Install & Run" cmd /k "prompt PaymentService$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Installing dependencies and starting Pooling Confirm Service...
+cd pooling-confirm
+start "Pooling Confirm Service - Install & Run" cmd /k "prompt PoolingConfirm$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Installing dependencies and starting Finished Trips Service...
+cd finished-trips-service
+start "Finished Trips Service - Install & Run" cmd /k "prompt FinishedTrips$G $P$G && npm install && npm run dev"
+cd ..
+
 echo.
 echo All services have been started in separate windows!
 echo.
@@ -90,6 +105,9 @@ echo - Guide Microservice: Port 5002
 echo - Driver Microservice: Port 5003
 echo - DB Migration Service: Port 5004
 echo - API Gateway: Port 8000
+echo - Payment Service: Port varies
+echo - Pooling Confirm Service: Port varies
+echo - Finished Trips Service: Port 4015
 echo.
 echo Press any key to exit...
 pause >nul
