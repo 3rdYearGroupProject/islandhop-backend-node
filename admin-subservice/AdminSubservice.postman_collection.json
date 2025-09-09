@@ -387,6 +387,146 @@
           }
         }
       ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/payments?page=1&limit=10&startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "payments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Optional: Filter by start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "Optional: Filter by end date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "completed",
+                  "disabled": true,
+                  "description": "Optional: Filter by payment status"
+                },
+                {
+                  "key": "tripType",
+                  "value": "regular",
+                  "disabled": true,
+                  "description": "Optional: Filter by trip type"
+                },
+                {
+                  "key": "minAmount",
+                  "value": "10",
+                  "disabled": true,
+                  "description": "Optional: Minimum payment amount"
+                },
+                {
+                  "key": "maxAmount",
+                  "value": "1000",
+                  "disabled": true,
+                  "description": "Optional: Maximum payment amount"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/payments/stats?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "payments", "stats"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Optional: Filter by start date"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31",
+                  "description": "Optional: Filter by end date"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Payment by Trip ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/payments/trip/:tripId",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "analytics",
+                "payments",
+                "trip",
+                ":tripId"
+              ],
+              "variable": [
+                {
+                  "key": "tripId",
+                  "value": "your-trip-id-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Daily Payment Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/payments/daily-summary?startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{base_url}}"],
+              "path": [
+                "api",
+                "admin",
+                "analytics",
+                "payments",
+                "daily-summary"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01",
+                  "description": "Required: Start date (YYYY-MM-DD)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31",
+                  "description": "Required: End date (YYYY-MM-DD)"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
