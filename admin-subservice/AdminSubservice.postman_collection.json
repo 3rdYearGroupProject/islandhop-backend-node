@@ -525,6 +525,37 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get Monthly Revenue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/analytics/revenue/monthly?year=2024&startMonth=1&endMonth=12",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "analytics", "revenue", "monthly"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024",
+                  "description": "Optional: Year (defaults to current year)"
+                },
+                {
+                  "key": "startMonth",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "Optional: Start month (1-12)"
+                },
+                {
+                  "key": "endMonth",
+                  "value": "12",
+                  "disabled": true,
+                  "description": "Optional: End month (1-12)"
+                }
+              ]
+            }
+          }
         }
       ]
     }
