@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const logger = require("../config/logger");
+const { supabase } = require("../config/postgresql");
 
 // Create a connection to the 'islandhop_trips' database
 const tripsDb = mongoose.createConnection(
@@ -15,6 +16,23 @@ const PayedFinishedTrip = tripsDb.model(
   "PayedFinishedTrip",
   PayedFinishedTripSchema
 );
+
+// Define schema for initiated_trips collection (moved outside function to prevent recompilation)
+const InitiatedTripSchema = new mongoose.Schema(
+  {},
+  { strict: false, collection: "initiated_trips" }
+);
+
+// Function to get or create InitiatedTrip model safely
+const getInitiatedTripModel = () => {
+  try {
+    // Try to get existing model first
+    return tripsDb.model("InitiatedTrip");
+  } catch (error) {
+    // If model doesn't exist, create it
+    return tripsDb.model("InitiatedTrip", InitiatedTripSchema);
+  }
+};
 
 /**
  * Get payment details from payed_finished_trips collection
@@ -312,7 +330,7 @@ const getDailyPaymentSummary = async (req, res) => {
 };
 
 /**
- * Get monthly revenue summary
+ * Get monthly revenue summary with trips count from initiated_trips collection
  */
 const getMonthlyRevenue = async (req, res) => {
   try {
@@ -325,8 +343,11 @@ const getMonthlyRevenue = async (req, res) => {
     const startDate = new Date(targetYear, 0, 1); // January 1st
     const endDate = new Date(targetYear + 1, 0, 1); // January 1st of next year
 
-    // Aggregation pipeline for monthly revenue
-    const pipeline = [
+    // Get the InitiatedTrip model safely
+    const InitiatedTrip = getInitiatedTripModel();
+
+    // Aggregation pipeline for monthly revenue from payed_finished_trips
+    const revenuePipeline = [
       {
         $match: {
           createdAt: {
@@ -342,33 +363,10 @@ const getMonthlyRevenue = async (req, res) => {
             month: { $month: "$createdAt" },
           },
           totalRevenue: { $sum: "$payedAmount" },
-          totalTransactions: { $sum: 1 },
+          totalPaidTrips: { $sum: 1 },
           averageAmount: { $avg: "$payedAmount" },
           maxAmount: { $max: "$payedAmount" },
           minAmount: { $min: "$payedAmount" },
-        },
-      },
-      {
-        $addFields: {
-          monthName: {
-            $switch: {
-              branches: [
-                { case: { $eq: ["$_id.month", 1] }, then: "January" },
-                { case: { $eq: ["$_id.month", 2] }, then: "February" },
-                { case: { $eq: ["$_id.month", 3] }, then: "March" },
-                { case: { $eq: ["$_id.month", 4] }, then: "April" },
-                { case: { $eq: ["$_id.month", 5] }, then: "May" },
-                { case: { $eq: ["$_id.month", 6] }, then: "June" },
-                { case: { $eq: ["$_id.month", 7] }, then: "July" },
-                { case: { $eq: ["$_id.month", 8] }, then: "August" },
-                { case: { $eq: ["$_id.month", 9] }, then: "September" },
-                { case: { $eq: ["$_id.month", 10] }, then: "October" },
-                { case: { $eq: ["$_id.month", 11] }, then: "November" },
-                { case: { $eq: ["$_id.month", 12] }, then: "December" },
-              ],
-              default: "Unknown",
-            },
-          },
         },
       },
       {
@@ -377,17 +375,31 @@ const getMonthlyRevenue = async (req, res) => {
           "_id.month": 1,
         },
       },
+    ];
+
+    // Aggregation pipeline for monthly trips count from initiated_trips
+    const tripsPipeline = [
       {
-        $project: {
-          _id: 0,
-          year: "$_id.year",
-          month: "$_id.month",
-          monthName: 1,
-          totalRevenue: { $round: ["$totalRevenue", 2] },
-          totalTransactions: 1,
-          averageAmount: { $round: ["$averageAmount", 2] },
-          maxAmount: { $round: ["$maxAmount", 2] },
-          minAmount: { $round: ["$minAmount", 2] },
+        $match: {
+          createdAt: {
+            $gte: startDate,
+            $lt: endDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          totalTrips: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
         },
       },
     ];
@@ -402,60 +414,405 @@ const getMonthlyRevenue = async (req, res) => {
         monthFilter.$lte = parseInt(endMonth);
       }
 
-      // Add month filter to the pipeline
-      pipeline.splice(1, 0, {
+      // Add month filter to revenue pipeline
+      revenuePipeline.splice(1, 0, {
         $addFields: {
           month: { $month: "$createdAt" },
         },
       });
-      pipeline.splice(2, 0, {
+      revenuePipeline.splice(2, 0, {
+        $match: {
+          month: monthFilter,
+        },
+      });
+
+      // Add month filter to trips pipeline
+      tripsPipeline.splice(1, 0, {
+        $addFields: {
+          month: { $month: "$createdAt" },
+        },
+      });
+      tripsPipeline.splice(2, 0, {
         $match: {
           month: monthFilter,
         },
       });
     }
 
-    const monthlyRevenue = await PayedFinishedTrip.aggregate(pipeline);
+    // Execute both pipelines
+    const [monthlyRevenue, monthlyTrips] = await Promise.all([
+      PayedFinishedTrip.aggregate(revenuePipeline),
+      InitiatedTrip.aggregate(tripsPipeline),
+    ]);
+
+    // Create a map for trips data
+    const tripsMap = new Map();
+    monthlyTrips.forEach((trip) => {
+      const key = `${trip._id.year}-${trip._id.month}`;
+      tripsMap.set(key, trip.totalTrips);
+    });
+
+    // Merge revenue and trips data
+    const combinedData = monthlyRevenue.map((revenue) => {
+      const key = `${revenue._id.year}-${revenue._id.month}`;
+      const totalTrips = tripsMap.get(key) || 0;
+
+      return {
+        year: revenue._id.year,
+        month: revenue._id.month,
+        monthName: getMonthName(revenue._id.month),
+        totalRevenue: Math.round(revenue.totalRevenue * 100) / 100,
+        totalPaidTrips: revenue.totalPaidTrips,
+        totalTrips: totalTrips,
+        conversionRate:
+          totalTrips > 0
+            ? Math.round((revenue.totalPaidTrips / totalTrips) * 10000) / 100
+            : 0, // Percentage with 2 decimals
+        averageAmount: Math.round(revenue.averageAmount * 100) / 100,
+        maxAmount: Math.round(revenue.maxAmount * 100) / 100,
+        minAmount: Math.round(revenue.minAmount * 100) / 100,
+      };
+    });
+
+    // Add months with trips but no revenue
+    monthlyTrips.forEach((trip) => {
+      const key = `${trip._id.year}-${trip._id.month}`;
+      const existsInRevenue = monthlyRevenue.some(
+        (rev) =>
+          rev._id.year === trip._id.year && rev._id.month === trip._id.month
+      );
+
+      if (!existsInRevenue) {
+        combinedData.push({
+          year: trip._id.year,
+          month: trip._id.month,
+          monthName: getMonthName(trip._id.month),
+          totalRevenue: 0,
+          totalPaidTrips: 0,
+          totalTrips: trip.totalTrips,
+          conversionRate: 0,
+          averageAmount: 0,
+          maxAmount: 0,
+          minAmount: 0,
+        });
+      }
+    });
+
+    // Sort combined data
+    combinedData.sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
 
     // Calculate yearly totals
-    const yearlyTotal = monthlyRevenue.reduce(
+    const yearlyTotal = combinedData.reduce(
       (acc, month) => ({
         totalRevenue: acc.totalRevenue + month.totalRevenue,
-        totalTransactions: acc.totalTransactions + month.totalTransactions,
+        totalPaidTrips: acc.totalPaidTrips + month.totalPaidTrips,
+        totalTrips: acc.totalTrips + month.totalTrips,
         averageAmount: 0, // Will be calculated after
       }),
-      { totalRevenue: 0, totalTransactions: 0, averageAmount: 0 }
+      { totalRevenue: 0, totalPaidTrips: 0, totalTrips: 0, averageAmount: 0 }
     );
 
-    // Calculate yearly average
+    // Calculate yearly averages and conversion rate
     yearlyTotal.averageAmount =
-      yearlyTotal.totalTransactions > 0
+      yearlyTotal.totalPaidTrips > 0
         ? Math.round(
-            (yearlyTotal.totalRevenue / yearlyTotal.totalTransactions) * 100
+            (yearlyTotal.totalRevenue / yearlyTotal.totalPaidTrips) * 100
           ) / 100
         : 0;
 
-    logger.info(`Monthly revenue retrieved for year ${targetYear}`);
+    yearlyTotal.conversionRate =
+      yearlyTotal.totalTrips > 0
+        ? Math.round(
+            (yearlyTotal.totalPaidTrips / yearlyTotal.totalTrips) * 10000
+          ) / 100
+        : 0;
+
+    logger.info(
+      `Monthly revenue and trips data retrieved for year ${targetYear}`
+    );
 
     res.status(200).json({
       success: true,
-      message: "Monthly revenue retrieved successfully",
+      message: "Monthly revenue and trips data retrieved successfully",
       data: {
         year: targetYear,
-        monthlyBreakdown: monthlyRevenue,
+        monthlyBreakdown: combinedData,
         yearlyTotal: {
           totalRevenue: Math.round(yearlyTotal.totalRevenue * 100) / 100,
-          totalTransactions: yearlyTotal.totalTransactions,
+          totalPaidTrips: yearlyTotal.totalPaidTrips,
+          totalTrips: yearlyTotal.totalTrips,
+          conversionRate: yearlyTotal.conversionRate,
           averageAmount: yearlyTotal.averageAmount,
-          monthsWithData: monthlyRevenue.length,
+          monthsWithData: combinedData.length,
         },
       },
     });
   } catch (error) {
-    logger.error("Error fetching monthly revenue:", error);
+    logger.error("Error fetching monthly revenue and trips data:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to retrieve monthly revenue",
+      message: "Failed to retrieve monthly revenue and trips data",
+      error: error.message,
+    });
+  }
+};
+
+// Helper function to get month name
+const getMonthName = (monthNumber) => {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return months[monthNumber - 1] || "Unknown";
+};
+
+/**
+ * Get total user counts from all Supabase account tables
+ */
+const getAllUserCounts = async (req, res) => {
+  try {
+    // Define all user account tables
+    const userTables = [
+      "admin_accounts",
+      "driver_accounts",
+      "guide_accounts",
+      "support_accounts",
+      "tourist_accounts",
+    ];
+
+    // Get counts from all tables in parallel
+    const countPromises = userTables.map(async (tableName) => {
+      try {
+        const { count, error } = await supabase
+          .from(tableName)
+          .select("*", { count: "exact", head: true });
+
+        if (error) {
+          logger.error(`Error counting ${tableName}:`, error);
+          return { tableName, count: 0, error: error.message };
+        }
+
+        return { tableName, count: count || 0, error: null };
+      } catch (err) {
+        logger.error(`Exception counting ${tableName}:`, err);
+        return { tableName, count: 0, error: err.message };
+      }
+    });
+
+    // Wait for all count queries to complete
+    const results = await Promise.all(countPromises);
+
+    // Process results and calculate totals
+    let totalUsers = 0;
+    const breakdown = {};
+    const errors = [];
+
+    results.forEach((result) => {
+      if (result.error) {
+        errors.push({
+          table: result.tableName,
+          error: result.error,
+        });
+      } else {
+        totalUsers += result.count;
+      }
+
+      // Clean table name for response (remove _accounts suffix)
+      const cleanName = result.tableName.replace("_accounts", "");
+      breakdown[cleanName] = {
+        count: result.count,
+        percentage: 0, // Will be calculated after total is known
+      };
+    });
+
+    // Calculate percentages
+    if (totalUsers > 0) {
+      Object.keys(breakdown).forEach((key) => {
+        breakdown[key].percentage =
+          Math.round((breakdown[key].count / totalUsers) * 10000) / 100;
+      });
+    }
+
+    // Prepare response data
+    const responseData = {
+      totalUsers,
+      breakdown,
+      summary: {
+        admins: breakdown.admin?.count || 0,
+        drivers: breakdown.driver?.count || 0,
+        guides: breakdown.guide?.count || 0,
+        support: breakdown.support?.count || 0,
+        tourists: breakdown.tourist?.count || 0,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    // Add errors to response if any
+    if (errors.length > 0) {
+      responseData.errors = errors;
+      logger.warn(`Some tables had errors while counting users:`, errors);
+    }
+
+    logger.info(
+      `Retrieved user counts from ${userTables.length} tables. Total users: ${totalUsers}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "User counts retrieved successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    logger.error("Error fetching user counts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve user counts",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get detailed user statistics from all Supabase account tables
+ */
+const getUserStatistics = async (req, res) => {
+  try {
+    const { includeInactive = false } = req.query;
+
+    // Define all user account tables with their specific fields
+    const userTables = [
+      { name: "admin_accounts", userType: "admin" },
+      { name: "driver_accounts", userType: "driver" },
+      { name: "guide_accounts", userType: "guide" },
+      { name: "support_accounts", userType: "support" },
+      { name: "tourist_accounts", userType: "tourist" },
+    ];
+
+    // Get detailed statistics from all tables
+    const statsPromises = userTables.map(async (table) => {
+      try {
+        let query = supabase.from(table.name).select("*");
+
+        // Filter active users if requested
+        if (!includeInactive) {
+          query = query.or("is_active.eq.true,is_active.is.null"); // Include null as active
+        }
+
+        const { data, error, count } = await query;
+
+        if (error) {
+          logger.error(`Error getting stats for ${table.name}:`, error);
+          return {
+            userType: table.userType,
+            tableName: table.name,
+            total: 0,
+            active: 0,
+            inactive: 0,
+            error: error.message,
+          };
+        }
+
+        // Calculate active/inactive counts
+        const users = data || [];
+        const activeCount = users.filter(
+          (user) => user.is_active === true || user.is_active === null
+        ).length;
+        const inactiveCount = users.length - activeCount;
+
+        return {
+          userType: table.userType,
+          tableName: table.name,
+          total: users.length,
+          active: activeCount,
+          inactive: inactiveCount,
+          error: null,
+        };
+      } catch (err) {
+        logger.error(`Exception getting stats for ${table.name}:`, err);
+        return {
+          userType: table.userType,
+          tableName: table.name,
+          total: 0,
+          active: 0,
+          inactive: 0,
+          error: err.message,
+        };
+      }
+    });
+
+    // Wait for all statistics queries to complete
+    const results = await Promise.all(statsPromises);
+
+    // Process results
+    const statistics = {
+      totalUsers: 0,
+      totalActive: 0,
+      totalInactive: 0,
+      byUserType: {},
+      errors: [],
+    };
+
+    results.forEach((result) => {
+      if (result.error) {
+        statistics.errors.push({
+          table: result.tableName,
+          error: result.error,
+        });
+      } else {
+        statistics.totalUsers += result.total;
+        statistics.totalActive += result.active;
+        statistics.totalInactive += result.inactive;
+      }
+
+      statistics.byUserType[result.userType] = {
+        total: result.total,
+        active: result.active,
+        inactive: result.inactive,
+        activePercentage:
+          result.total > 0
+            ? Math.round((result.active / result.total) * 10000) / 100
+            : 0,
+      };
+    });
+
+    // Calculate overall active percentage
+    statistics.overallActivePercentage =
+      statistics.totalUsers > 0
+        ? Math.round((statistics.totalActive / statistics.totalUsers) * 10000) /
+          100
+        : 0;
+
+    logger.info(
+      `Retrieved detailed user statistics. Total: ${statistics.totalUsers}, Active: ${statistics.totalActive}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "User statistics retrieved successfully",
+      data: {
+        ...statistics,
+        includeInactive: includeInactive,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching user statistics:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve user statistics",
       error: error.message,
     });
   }
@@ -467,4 +824,6 @@ module.exports = {
   getPaymentByTripId,
   getDailyPaymentSummary,
   getMonthlyRevenue,
+  getAllUserCounts,
+  getUserStatistics,
 };
