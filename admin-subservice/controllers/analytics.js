@@ -311,9 +311,160 @@ const getDailyPaymentSummary = async (req, res) => {
   }
 };
 
+/**
+ * Get monthly revenue summary
+ */
+const getMonthlyRevenue = async (req, res) => {
+  try {
+    const { year, startMonth, endMonth } = req.query;
+
+    // Default to current year if not provided
+    const targetYear = year ? parseInt(year) : new Date().getFullYear();
+
+    // Build date filter for the year
+    const startDate = new Date(targetYear, 0, 1); // January 1st
+    const endDate = new Date(targetYear + 1, 0, 1); // January 1st of next year
+
+    // Aggregation pipeline for monthly revenue
+    const pipeline = [
+      {
+        $match: {
+          createdAt: {
+            $gte: startDate,
+            $lt: endDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          totalRevenue: { $sum: "$payedAmount" },
+          totalTransactions: { $sum: 1 },
+          averageAmount: { $avg: "$payedAmount" },
+          maxAmount: { $max: "$payedAmount" },
+          minAmount: { $min: "$payedAmount" },
+        },
+      },
+      {
+        $addFields: {
+          monthName: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$_id.month", 1] }, then: "January" },
+                { case: { $eq: ["$_id.month", 2] }, then: "February" },
+                { case: { $eq: ["$_id.month", 3] }, then: "March" },
+                { case: { $eq: ["$_id.month", 4] }, then: "April" },
+                { case: { $eq: ["$_id.month", 5] }, then: "May" },
+                { case: { $eq: ["$_id.month", 6] }, then: "June" },
+                { case: { $eq: ["$_id.month", 7] }, then: "July" },
+                { case: { $eq: ["$_id.month", 8] }, then: "August" },
+                { case: { $eq: ["$_id.month", 9] }, then: "September" },
+                { case: { $eq: ["$_id.month", 10] }, then: "October" },
+                { case: { $eq: ["$_id.month", 11] }, then: "November" },
+                { case: { $eq: ["$_id.month", 12] }, then: "December" },
+              ],
+              default: "Unknown",
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id.year",
+          month: "$_id.month",
+          monthName: 1,
+          totalRevenue: { $round: ["$totalRevenue", 2] },
+          totalTransactions: 1,
+          averageAmount: { $round: ["$averageAmount", 2] },
+          maxAmount: { $round: ["$maxAmount", 2] },
+          minAmount: { $round: ["$minAmount", 2] },
+        },
+      },
+    ];
+
+    // Apply month range filter if provided
+    if (startMonth || endMonth) {
+      const monthFilter = {};
+      if (startMonth) {
+        monthFilter.$gte = parseInt(startMonth);
+      }
+      if (endMonth) {
+        monthFilter.$lte = parseInt(endMonth);
+      }
+
+      // Add month filter to the pipeline
+      pipeline.splice(1, 0, {
+        $addFields: {
+          month: { $month: "$createdAt" },
+        },
+      });
+      pipeline.splice(2, 0, {
+        $match: {
+          month: monthFilter,
+        },
+      });
+    }
+
+    const monthlyRevenue = await PayedFinishedTrip.aggregate(pipeline);
+
+    // Calculate yearly totals
+    const yearlyTotal = monthlyRevenue.reduce(
+      (acc, month) => ({
+        totalRevenue: acc.totalRevenue + month.totalRevenue,
+        totalTransactions: acc.totalTransactions + month.totalTransactions,
+        averageAmount: 0, // Will be calculated after
+      }),
+      { totalRevenue: 0, totalTransactions: 0, averageAmount: 0 }
+    );
+
+    // Calculate yearly average
+    yearlyTotal.averageAmount =
+      yearlyTotal.totalTransactions > 0
+        ? Math.round(
+            (yearlyTotal.totalRevenue / yearlyTotal.totalTransactions) * 100
+          ) / 100
+        : 0;
+
+    logger.info(`Monthly revenue retrieved for year ${targetYear}`);
+
+    res.status(200).json({
+      success: true,
+      message: "Monthly revenue retrieved successfully",
+      data: {
+        year: targetYear,
+        monthlyBreakdown: monthlyRevenue,
+        yearlyTotal: {
+          totalRevenue: Math.round(yearlyTotal.totalRevenue * 100) / 100,
+          totalTransactions: yearlyTotal.totalTransactions,
+          averageAmount: yearlyTotal.averageAmount,
+          monthsWithData: monthlyRevenue.length,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching monthly revenue:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve monthly revenue",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getPaymentDetails,
   getPaymentStats,
   getPaymentByTripId,
   getDailyPaymentSummary,
+  getMonthlyRevenue,
 };
