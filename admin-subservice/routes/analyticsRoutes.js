@@ -6,6 +6,8 @@ const {
   getPaymentByTripId,
   getDailyPaymentSummary,
   getMonthlyRevenue,
+  getAllUserCounts,
+  getUserStatistics,
 } = require("../controllers/analytics");
 
 // Get payment details with filtering and pagination
@@ -22,5 +24,11 @@ router.get("/payments/daily-summary", getDailyPaymentSummary);
 
 // Get monthly revenue summary
 router.get("/revenue/monthly", getMonthlyRevenue);
+
+// Get all user counts from Supabase tables
+router.get("/users/count", getAllUserCounts);
+
+// Get detailed user statistics
+router.get("/users/statistics", getUserStatistics);
 
 module.exports = router;
