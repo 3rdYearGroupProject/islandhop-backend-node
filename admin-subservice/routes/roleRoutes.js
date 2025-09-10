@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { verifyAdminToken } = require("../middlewares/auth");
 const {
   getAllRoles,
   getRoleById,
@@ -10,6 +11,9 @@ const {
   createPermission,
   deletePermission,
 } = require("../controllers/roleController");
+
+// Apply admin authentication middleware to all routes
+router.use(verifyAdminToken);
 
 // Role management routes
 router.get("/", getAllRoles);
