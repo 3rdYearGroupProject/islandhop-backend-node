@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { verifyAdminToken } = require("../middlewares/auth");
 const {
   getPaymentDetails,
   getPaymentStats,
@@ -9,6 +10,9 @@ const {
   getAllUserCounts,
   getUserStatistics,
 } = require("../controllers/analytics");
+
+// Apply admin authentication middleware to all routes
+router.use(verifyAdminToken);
 
 // Get payment details with filtering and pagination
 router.get("/payments", getPaymentDetails);
