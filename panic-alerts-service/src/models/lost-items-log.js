@@ -7,6 +7,7 @@ const lostItemsSchema = new mongoose.Schema({
     lostDate: { type: Date, required: true },
     tripId: { type: String, required: true },
     status: { type: String, default: "not found" }, // Default status
+    progressNotes: { type: String, default: "" },
     timestamp: { type: Date, default: Date.now }
     }, {
     timestamps: true // Automatically manage createdAt and updatedAt fields
