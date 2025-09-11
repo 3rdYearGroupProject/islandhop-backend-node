@@ -1,0 +1,273 @@
+{
+	"info": {
+		"_postman_id": "email-service-collection",
+		"name": "Email Service API",
+		"description": "Collection for testing IslandHop Email Service endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			}
+		},
+		{
+			"name": "Test Email Configuration",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/test-config",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"test-config"
+					]
+				}
+			}
+		},
+		{
+			"name": "Send Single Email",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"to\": \"recipient@example.com\",\n    \"subject\": \"Test Email\",\n    \"text\": \"This is a test email\",\n    \"html\": \"<h1>This is a test email</h1>\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/send",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"send"
+					]
+				}
+			}
+		},
+		{
+			"name": "Send Bulk Email",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"recipients\": [\"user1@example.com\", \"user2@example.com\"],\n    \"subject\": \"Bulk Email Test\",\n    \"text\": \"This is a bulk email test\",\n    \"html\": \"<h1>Bulk Email Test</h1>\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/send-bulk",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"send-bulk"
+					]
+				}
+			}
+		},
+		{
+			"name": "Contact Form",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"subject\": \"Contact Inquiry\",\n    \"message\": \"Hello, I have a question about your services.\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/contact",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"contact"
+					]
+				}
+			}
+		},
+		{
+			"name": "Welcome Email",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"newuser@example.com\",\n    \"name\": \"New User\",\n    \"userType\": \"tourist\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/welcome",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"welcome"
+					]
+				}
+			}
+		},
+		{
+			"name": "Account Verification Email",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"user@example.com\",\n    \"name\": \"John Doe\",\n    \"userType\": \"tourist\",\n    \"verificationToken\": \"abc123token\",\n    \"verificationUrl\": \"https://islandhop.com/verify\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/verification",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"verification"
+					]
+				}
+			}
+		},
+		{
+			"name": "Pool Request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"requesterEmail\": \"tourist@example.com\",\n    \"requesterName\": \"Jane Smith\",\n    \"poolName\": \"Beach Adventure\",\n    \"poolOwnerEmail\": \"guide@example.com\",\n    \"poolOwnerName\": \"Local Guide\",\n    \"requestType\": \"public\",\n    \"message\": \"Would love to join this adventure!\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/pool-request",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"pool-request"
+					]
+				}
+			}
+		},
+		{
+			"name": "Service Request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"requestorEmail\": \"tourist@example.com\",\n    \"requestorName\": \"John Tourist\",\n    \"serviceProviderEmail\": \"guide@example.com\",\n    \"serviceProviderName\": \"Expert Guide\",\n    \"serviceType\": \"guide\",\n    \"location\": \"Santorini, Greece\",\n    \"dates\": \"July 15-20, 2025\",\n    \"message\": \"Looking for a cultural tour\",\n    \"budget\": \"$500-800\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/service-request",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"service-request"
+					]
+				}
+			}
+		},
+		{
+			"name": "Lost Item Report",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"reporterEmail\": \"tourist@example.com\",\n    \"reporterName\": \"Worried Tourist\",\n    \"itemDescription\": \"Blue backpack with camera\",\n    \"locationLost\": \"Santorini Cable Car\",\n    \"dateLost\": \"2025-07-25\",\n    \"contactPhone\": \"+1-555-0123\",\n    \"rewardOffered\": \"$200\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/email/lost-item",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"email",
+						"lost-item"
+					]
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8084",
+			"type": "string"
+		}
+	]
+}
