@@ -1,0 +1,583 @@
+{
+	"info": {
+		"_postman_id": "bank-transfer-service-collection",
+		"name": "Bank Transfer Service",
+		"description": "Comprehensive API collection for testing the Bank Transfer Microservice endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "bank-transfer-service"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Service Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Check if the bank transfer service is running and healthy"
+					},
+					"response": []
+				},
+				{
+					"name": "Service Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": ["{{base_url}}"],
+							"path": [""]
+						},
+						"description": "Get service information and available endpoints"
+					},
+					"response": []
+				}
+			],
+			"description": "Health check and service information endpoints"
+		},
+		{
+			"name": "Bank Details Management",
+			"item": [
+				{
+					"name": "Add Bank Details",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"accountHolderName\": \"John Doe\",\n  \"bankName\": \"National Bank of Sri Lanka\",\n  \"accountNumber\": \"1234567890\",\n  \"branchCode\": \"001\",\n  \"branchName\": \"Colombo Main Branch\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/bank/add",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "add"]
+						},
+						"description": "Add new bank details for a user"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Bank Details - Driver",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"driver@islandhop.com\",\n  \"accountHolderName\": \"Mike Driver\",\n  \"bankName\": \"Commercial Bank\",\n  \"accountNumber\": \"9876543210\",\n  \"branchCode\": \"045\",\n  \"branchName\": \"Kandy Branch\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/bank/add",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "add"]
+						},
+						"description": "Add bank details for a driver"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Bank Details - Guide",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"guide@islandhop.com\",\n  \"accountHolderName\": \"Sarah Guide\",\n  \"bankName\": \"People's Bank\",\n  \"accountNumber\": \"5555666677\",\n  \"branchCode\": \"123\",\n  \"branchName\": \"Galle Branch\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/bank/add",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "add"]
+						},
+						"description": "Add bank details for a guide"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bank Details by Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bank/:email",
+							"host": ["{{base_url}}"],
+							"path": ["bank", ":email"],
+							"variable": [
+								{
+									"key": "email",
+									"value": "john.doe@example.com",
+									"description": "Email address of the user"
+								}
+							]
+						},
+						"description": "Retrieve bank details for a specific email address"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Bank Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountHolderName\": \"John Doe Updated\",\n  \"bankName\": \"Updated Bank Name\",\n  \"branchName\": \"Updated Branch Name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/bank/update/:email",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "update", ":email"],
+							"variable": [
+								{
+									"key": "email",
+									"value": "john.doe@example.com",
+									"description": "Email address of the user to update"
+								}
+							]
+						},
+						"description": "Update existing bank details for a user"
+					},
+					"response": []
+				}
+			],
+			"description": "Bank details CRUD operations"
+		},
+		{
+			"name": "Payment Management",
+			"item": [
+				{
+					"name": "Update Driver Payment with Evidence",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "evidence",
+									"type": "file",
+									"src": [],
+									"description": "Upload payment evidence image (JPEG, PNG, GIF)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/payment/update/drivers/:tripId",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "update", "drivers", ":tripId"],
+							"variable": [
+								{
+									"key": "tripId",
+									"value": "TRIP123",
+									"description": "Trip ID for the payment"
+								}
+							]
+						},
+						"description": "Update driver payment status and upload evidence image"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Guide Payment with Evidence",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "evidence",
+									"type": "file",
+									"src": [],
+									"description": "Upload payment evidence image (JPEG, PNG, GIF)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/payment/update/guides/:tripId",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "update", "guides", ":tripId"],
+							"variable": [
+								{
+									"key": "tripId",
+									"value": "TRIP456",
+									"description": "Trip ID for the payment"
+								}
+							]
+						},
+						"description": "Update guide payment status and upload evidence image"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Driver Payment Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payment/drivers/:tripId",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "drivers", ":tripId"],
+							"variable": [
+								{
+									"key": "tripId",
+									"value": "TRIP123",
+									"description": "Trip ID to get payment details for"
+								}
+							]
+						},
+						"description": "Get payment details for a specific driver trip"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Guide Payment Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payment/guides/:tripId",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "guides", ":tripId"],
+							"variable": [
+								{
+									"key": "tripId",
+									"value": "TRIP456",
+									"description": "Trip ID to get payment details for"
+								}
+							]
+						},
+						"description": "Get payment details for a specific guide trip"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Driver Payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payment/drivers",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "drivers"]
+						},
+						"description": "Get all payment records for drivers"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Guide Payments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payment/guides",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "guides"]
+						},
+						"description": "Get all payment records for guides"
+					},
+					"response": []
+				}
+			],
+			"description": "Payment management and evidence upload operations"
+		},
+		{
+			"name": "Error Testing",
+			"item": [
+				{
+					"name": "Add Bank Details - Missing Fields",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"incomplete@example.com\",\n  \"accountHolderName\": \"Test User\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/bank/add",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "add"]
+						},
+						"description": "Test validation error when required fields are missing"
+					},
+					"response": []
+				},
+				{
+					"name": "Add Bank Details - Duplicate Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"accountHolderName\": \"Duplicate User\",\n  \"bankName\": \"Test Bank\",\n  \"accountNumber\": \"1111111111\",\n  \"branchCode\": \"999\",\n  \"branchName\": \"Test Branch\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/bank/add",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "add"]
+						},
+						"description": "Test duplicate email error"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bank Details - Non-existent Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bank/nonexistent@example.com",
+							"host": ["{{base_url}}"],
+							"path": ["bank", "nonexistent@example.com"]
+						},
+						"description": "Test 404 error for non-existent email"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment - Invalid Role",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "evidence",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/payment/update/invalid_role/TRIP123",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "update", "invalid_role", "TRIP123"]
+						},
+						"description": "Test invalid role parameter error"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment - No File Upload",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "{{base_url}}/payment/update/drivers/TRIP123",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "update", "drivers", "TRIP123"]
+						},
+						"description": "Test missing evidence file error"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Payment - Non-existent Trip",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payment/drivers/NONEXISTENT_TRIP",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "drivers", "NONEXISTENT_TRIP"]
+						},
+						"description": "Test 404 error for non-existent trip ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Endpoint - 404 Test",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/invalid/endpoint",
+							"host": ["{{base_url}}"],
+							"path": ["invalid", "endpoint"]
+						},
+						"description": "Test 404 error for invalid endpoint"
+					},
+					"response": []
+				}
+			],
+			"description": "Error handling and validation testing"
+		},
+		{
+			"name": "File Access",
+			"item": [
+				{
+					"name": "Access Uploaded Evidence File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/uploads/:filename",
+							"host": ["{{base_url}}"],
+							"path": ["uploads", ":filename"],
+							"variable": [
+								{
+									"key": "filename",
+									"value": "evidence-1694285400000-123456789.jpg",
+									"description": "Filename of the uploaded evidence (replace with actual filename after upload)"
+								}
+							]
+						},
+						"description": "Access uploaded evidence files via static file serving"
+					},
+					"response": []
+				}
+			],
+			"description": "File access and static serving endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Pre-request script for setting up common variables",
+					"// You can add any setup logic here"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Common test script for all requests",
+					"pm.test(\"Response time is less than 5000ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"pm.test(\"Response has required headers\", function () {",
+					"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+					"});",
+					"",
+					"// Test for successful responses",
+					"if (pm.response.code >= 200 && pm.response.code < 300) {",
+					"    pm.test(\"Successful response has success field\", function () {",
+					"        const responseJson = pm.response.json();",
+					"        pm.expect(responseJson).to.have.property('success');",
+					"        pm.expect(responseJson.success).to.be.true;",
+					"    });",
+					"}",
+					"",
+					"// Test for error responses",
+					"if (pm.response.code >= 400) {",
+					"    pm.test(\"Error response has proper structure\", function () {",
+					"        const responseJson = pm.response.json();",
+					"        pm.expect(responseJson).to.have.property('success');",
+					"        pm.expect(responseJson.success).to.be.false;",
+					"        pm.expect(responseJson).to.have.property('message');",
+					"    });",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4021",
+			"type": "string",
+			"description": "Base URL for the Bank Transfer Service"
+		},
+		{
+			"key": "test_email",
+			"value": "test@example.com",
+			"type": "string",
+			"description": "Test email for bank details operations"
+		},
+		{
+			"key": "driver_email",
+			"value": "driver@islandhop.com",
+			"type": "string",
+			"description": "Driver email for testing"
+		},
+		{
+			"key": "guide_email",
+			"value": "guide@islandhop.com",
+			"type": "string",
+			"description": "Guide email for testing"
+		},
+		{
+			"key": "test_trip_id",
+			"value": "TRIP123",
+			"type": "string",
+			"description": "Test trip ID for payment operations"
+		}
+	]
+}
