@@ -19,10 +19,16 @@ class PoolingConfirmController {
         tripStartDate: Joi.date().iso().required(),
         tripEndDate: Joi.date().iso().min(Joi.ref('tripStartDate')).required(),
         confirmationHours: Joi.number().min(1).max(168).default(48), // 1 hour to 1 week
+        
+        // Enhanced payment configuration
         totalAmount: Joi.number().min(0).default(0),
         pricePerPerson: Joi.number().min(0).default(0),
         currency: Joi.string().valid('LKR', 'USD', 'EUR').default('LKR'),
-        paymentDeadlineHours: Joi.number().min(1).max(336).default(72), // 1 hour to 2 weeks
+        
+        // Payment phase deadlines
+        upfrontPaymentHours: Joi.number().min(1).max(168).default(48), // Hours after confirmation for 50% payment
+        finalPaymentDaysBefore: Joi.number().min(1).max(30).default(7), // Days before trip for remaining 50%
+        
         tripDetails: Joi.object().default({})
       });
 
@@ -281,6 +287,47 @@ class PoolingConfirmController {
         success: false,
         message: 'Service unhealthy',
         error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/v1/pooling-confirm/:confirmedTripId/details
+   * Get comprehensive trip details with all member payment information
+   */
+  async getComprehensiveTripDetails(req, res) {
+    try {
+      const { confirmedTripId } = req.params;
+      const { userId } = req.query;
+
+      // Validation
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'userId is required as query parameter'
+        });
+      }
+
+      if (!confirmedTripId || !confirmedTripId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid confirmedTripId format'
+        });
+      }
+
+      const tripDetails = await poolingConfirmService.getComprehensiveTripDetails(confirmedTripId, userId);
+
+      res.status(200).json({
+        success: true,
+        data: tripDetails
+      });
+
+    } catch (error) {
+      logger.error('Error in getComprehensiveTripDetails:', error);
+      res.status(error.message.includes('not found') ? 404 :
+                 error.message.includes('Unauthorized') ? 403 : 500).json({
+        success: false,
+        message: error.message
       });
     }
   }

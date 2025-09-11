@@ -1,4 +1,10 @@
-const ConfirmedTrip = require('../models/ConfirmedTrip');
+const ConfirmedTrip = require('../models/Confi      // 6. Calculate payment deadlines and amounts
+      const upfrontDeadline = moment().add(confirmationData.upfrontPaymentHours || 48, 'hours').toDate();
+      const finalDeadline = moment(confirmationData.tripStartDate).subtract(confirmationData.finalPaymentDaysBefore || 7, 'days').toDate();
+      
+      const pricePerPerson = confirmationData.pricePerPerson || 0;
+      const upfrontAmount = Math.round(pricePerPerson * 0.5); // 50%
+      const finalAmount = pricePerPerson - upfrontAmount; // Remaining amountedTrip');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const logger = require('../config/logger');
 const axios = require('axios');
@@ -47,7 +53,15 @@ class PoolingConfirmService {
       // 5. Calculate confirmation deadline (default 48 hours)
       const confirmationDeadline = moment().add(confirmationData.confirmationHours || 48, 'hours').toDate();
       
-      // 6. Create confirmed trip entry
+      // 6. Calculate payment deadlines and amounts
+      const upfrontDeadline = moment().add(confirmationData.upfrontPaymentHours || 48, 'hours').toDate();
+      const finalDeadline = moment(confirmationData.tripStartDate).subtract(confirmationData.finalPaymentDaysBefore || 7, 'days').toDate();
+      
+      const pricePerPerson = confirmationData.pricePerPerson || 0;
+      const upfrontAmount = Math.round(pricePerPerson * 0.5); // 50%
+      const finalAmount = pricePerPerson - upfrontAmount; // Remaining amount
+      
+      // 7. Create confirmed trip entry
       const confirmedTrip = new ConfirmedTrip({
         groupId,
         tripId: groupDetails.tripId,
@@ -66,9 +80,37 @@ class PoolingConfirmService {
         status: 'pending_confirmation',
         paymentInfo: {
           totalAmount: confirmationData.totalAmount || 0,
-          pricePerPerson: confirmationData.pricePerPerson || 0,
+          pricePerPerson: pricePerPerson,
           currency: confirmationData.currency || 'LKR',
-          paymentDeadline: moment().add(confirmationData.paymentDeadlineHours || 72, 'hours').toDate()
+          phases: {
+            upfront: {
+              percentage: 50,
+              amount: upfrontAmount,
+              deadline: upfrontDeadline,
+              status: 'pending'
+            },
+            final: {
+              percentage: 50,
+              amount: finalAmount,
+              deadline: finalDeadline,
+              status: 'pending'
+            }
+          },
+          memberPayments: currentMembers.map(memberId => ({
+            userId: memberId,
+            userEmail: '', // Will be populated later
+            userName: '', // Will be populated later
+            upfrontPayment: {
+              amount: upfrontAmount,
+              status: 'pending'
+            },
+            finalPayment: {
+              amount: finalAmount,
+              status: 'pending'
+            },
+            overallPaymentStatus: 'pending',
+            totalPaid: 0
+          }))
         },
         memberConfirmations: currentMembers.map(memberId => ({
           userId: memberId,
@@ -523,6 +565,188 @@ class PoolingConfirmService {
       logger.info(`Refunds initiated for trip ${confirmedTrip._id}`);
     } catch (error) {
       logger.error(`Error processing refunds for trip ${confirmedTrip._id}:`, error);
+    }
+  }
+
+  /**
+   * Get comprehensive trip details with member payment information
+   * This endpoint provides all trip details including payment status for each member
+   */
+  async getComprehensiveTripDetails(confirmedTripId, requestingUserId) {
+    try {
+      logger.info(`Getting comprehensive trip details for ${confirmedTripId} by user ${requestingUserId}`);
+
+      const confirmedTrip = await ConfirmedTrip.findById(confirmedTripId);
+      if (!confirmedTrip) {
+        throw new Error('Confirmed trip not found');
+      }
+
+      // Check if user is authorized to view (member or creator)
+      if (!confirmedTrip.memberIds.includes(requestingUserId)) {
+        throw new Error('Unauthorized to view this trip');
+      }
+
+      // Get detailed user information for all members
+      const memberDetails = await Promise.all(
+        confirmedTrip.memberIds.map(async (memberId) => {
+          const userEmail = await this.getUserEmail(memberId);
+          const userName = await this.getUserName(memberId);
+          
+          // Find member's payment info
+          const memberPayment = confirmedTrip.paymentInfo.memberPayments.find(mp => mp.userId === memberId);
+          const memberConfirmation = confirmedTrip.memberConfirmations.find(mc => mc.userId === memberId);
+          
+          return {
+            userId: memberId,
+            userEmail,
+            userName,
+            isCreator: confirmedTrip.creatorUserId === memberId,
+            
+            // Confirmation Status
+            hasConfirmed: memberConfirmation ? memberConfirmation.confirmed : false,
+            confirmedAt: memberConfirmation ? memberConfirmation.confirmedAt : null,
+            
+            // Payment Status
+            paymentStatus: {
+              overall: memberPayment ? memberPayment.overallPaymentStatus : 'pending',
+              totalPaid: memberPayment ? memberPayment.totalPaid : 0,
+              totalDue: confirmedTrip.paymentInfo.pricePerPerson,
+              
+              upfront: {
+                amount: memberPayment ? memberPayment.upfrontPayment.amount : 0,
+                status: memberPayment ? memberPayment.upfrontPayment.status : 'pending',
+                paidAt: memberPayment ? memberPayment.upfrontPayment.paidAt : null,
+                paymentId: memberPayment ? memberPayment.upfrontPayment.paymentId : null
+              },
+              
+              final: {
+                amount: memberPayment ? memberPayment.finalPayment.amount : 0,
+                status: memberPayment ? memberPayment.finalPayment.status : 'pending',
+                paidAt: memberPayment ? memberPayment.finalPayment.paidAt : null,
+                paymentId: memberPayment ? memberPayment.finalPayment.paymentId : null
+              }
+            }
+          };
+        })
+      );
+
+      // Calculate days until trip
+      const daysUntilTrip = moment(confirmedTrip.tripStartDate).diff(moment(), 'days');
+      const daysUntilFinalPayment = moment(confirmedTrip.paymentInfo.phases.final.deadline).diff(moment(), 'days');
+
+      // Payment statistics
+      const paymentStats = {
+        upfront: {
+          paid: memberDetails.filter(m => m.paymentStatus.upfront.status === 'paid').length,
+          pending: memberDetails.filter(m => m.paymentStatus.upfront.status === 'pending').length,
+          failed: memberDetails.filter(m => m.paymentStatus.upfront.status === 'failed').length,
+          totalCollected: memberDetails.reduce((sum, m) => 
+            sum + (m.paymentStatus.upfront.status === 'paid' ? m.paymentStatus.upfront.amount : 0), 0
+          )
+        },
+        final: {
+          paid: memberDetails.filter(m => m.paymentStatus.final.status === 'paid').length,
+          pending: memberDetails.filter(m => m.paymentStatus.final.status === 'pending').length,
+          failed: memberDetails.filter(m => m.paymentStatus.final.status === 'failed').length,
+          totalCollected: memberDetails.reduce((sum, m) => 
+            sum + (m.paymentStatus.final.status === 'paid' ? m.paymentStatus.final.amount : 0), 0
+          )
+        },
+        overall: {
+          fullyPaid: memberDetails.filter(m => m.paymentStatus.overall === 'completed').length,
+          partiallyPaid: memberDetails.filter(m => m.paymentStatus.overall === 'partial').length,
+          notPaid: memberDetails.filter(m => m.paymentStatus.overall === 'pending').length,
+          totalExpected: confirmedTrip.paymentInfo.pricePerPerson * confirmedTrip.currentMemberCount,
+          totalCollected: memberDetails.reduce((sum, m) => sum + m.paymentStatus.totalPaid, 0)
+        }
+      };
+
+      // Trip timeline and deadlines
+      const timeline = {
+        confirmationDeadline: confirmedTrip.confirmationDeadline,
+        upfrontPaymentDeadline: confirmedTrip.paymentInfo.phases.upfront.deadline,
+        finalPaymentDeadline: confirmedTrip.paymentInfo.phases.final.deadline,
+        tripStartDate: confirmedTrip.tripStartDate,
+        tripEndDate: confirmedTrip.tripEndDate,
+        
+        // Time remaining
+        daysUntilTrip,
+        daysUntilFinalPayment,
+        
+        // Status indicators
+        isConfirmationExpired: new Date() > confirmedTrip.confirmationDeadline,
+        isUpfrontPaymentExpired: new Date() > confirmedTrip.paymentInfo.phases.upfront.deadline,
+        isFinalPaymentExpired: new Date() > confirmedTrip.paymentInfo.phases.final.deadline,
+        isTripStarted: new Date() > confirmedTrip.tripStartDate
+      };
+
+      return {
+        // Basic Trip Information
+        confirmedTripId: confirmedTrip._id,
+        groupId: confirmedTrip.groupId,
+        tripId: confirmedTrip.tripId,
+        tripName: confirmedTrip.tripName,
+        groupName: confirmedTrip.groupName,
+        status: confirmedTrip.status,
+        
+        // Trip Details
+        tripDetails: confirmedTrip.tripDetails,
+        preferences: confirmedTrip.preferences,
+        
+        // Member Information
+        members: memberDetails,
+        memberCount: confirmedTrip.currentMemberCount,
+        minMembers: confirmedTrip.minMembers,
+        maxMembers: confirmedTrip.maxMembers,
+        
+        // Creator Information
+        creator: {
+          userId: confirmedTrip.creatorUserId,
+          userName: await this.getUserName(confirmedTrip.creatorUserId),
+          userEmail: await this.getUserEmail(confirmedTrip.creatorUserId)
+        },
+        
+        // Payment Information
+        paymentInfo: {
+          currency: confirmedTrip.paymentInfo.currency,
+          pricePerPerson: confirmedTrip.paymentInfo.pricePerPerson,
+          phases: confirmedTrip.paymentInfo.phases,
+          statistics: paymentStats
+        },
+        
+        // Timeline and Deadlines
+        timeline,
+        
+        // Status Flags
+        flags: {
+          allMembersConfirmed: confirmedTrip.allMembersConfirmed,
+          allUpfrontPaid: confirmedTrip.allMembersUpfrontPaid,
+          allFinalPaid: confirmedTrip.allMembersFinalPaid,
+          hasEnoughMembers: confirmedTrip.hasEnoughMembers,
+          canStartTrip: confirmedTrip.allMembersConfirmed && confirmedTrip.allMembersUpfrontPaid,
+          isReadyForFinalPayment: daysUntilFinalPayment <= 14 && confirmedTrip.allMembersUpfrontPaid
+        },
+        
+        // Audit Information
+        createdAt: confirmedTrip.createdAt,
+        updatedAt: confirmedTrip.updatedAt,
+        confirmedAt: confirmedTrip.confirmedAt,
+        recentActions: confirmedTrip.actions.slice(-10).reverse() // Last 10 actions
+      };
+
+    } catch (error) {
+      logger.error(`Error getting comprehensive trip details for ${confirmedTripId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserName(userId) {
+    try {
+      // This would integrate with your user service to get user name
+      return `User_${userId.substring(0, 8)}`;
+    } catch (error) {
+      logger.error(`Error getting user name for ${userId}:`, error.message);
+      return `User_${userId.substring(0, 8)}`;
     }
   }
 }
