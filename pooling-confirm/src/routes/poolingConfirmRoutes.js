@@ -42,6 +42,15 @@ router.post('/:confirmedTripId/confirm', poolingConfirmController.confirmPartici
 router.get('/:confirmedTripId/status', poolingConfirmController.getConfirmationStatus);
 
 /**
+ * @route   GET /api/v1/pooling-confirm/:confirmedTripId/details
+ * @desc    Get comprehensive trip details with all member payment information
+ * @access  Private (Trip Members only)
+ * @params  confirmedTripId: string (MongoDB ObjectId)
+ * @query   userId: string
+ */
+router.get('/:confirmedTripId/details', poolingConfirmController.getComprehensiveTripDetails);
+
+/**
  * @route   POST /api/v1/pooling-confirm/:confirmedTripId/cancel
  * @desc    Cancel trip confirmation (Creator only)
  * @access  Private (Trip Creator only)

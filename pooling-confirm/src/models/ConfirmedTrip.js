@@ -81,7 +81,7 @@ const confirmedTripSchema = new mongoose.Schema({
     default: {}
   },
   
-  // Payment Information
+  // Payment Information - Enhanced with 50% model
   paymentInfo: {
     totalAmount: {
       type: Number,
@@ -95,24 +95,124 @@ const confirmedTripSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
-    paymentDeadline: {
-      type: Date
+    
+    // Payment Phases
+    phases: {
+      // Phase 1: 50% upfront after confirmation
+      upfront: {
+        percentage: {
+          type: Number,
+          default: 50
+        },
+        amount: {
+          type: Number,
+          default: 0
+        },
+        deadline: {
+          type: Date
+        },
+        status: {
+          type: String,
+          enum: ['pending', 'active', 'completed', 'expired'],
+          default: 'pending'
+        }
+      },
+      
+      // Phase 2: Remaining 50% before trip starts
+      final: {
+        percentage: {
+          type: Number,
+          default: 50
+        },
+        amount: {
+          type: Number,
+          default: 0
+        },
+        deadline: {
+          type: Date // Usually 7-14 days before trip
+        },
+        status: {
+          type: String,
+          enum: ['pending', 'active', 'completed', 'expired'],
+          default: 'pending'
+        }
+      }
     },
+    
     memberPayments: [{
       userId: String,
-      amount: Number,
-      status: {
+      userEmail: String,
+      userName: String,
+      
+      // Upfront Payment (50%)
+      upfrontPayment: {
+        amount: Number,
+        status: {
+          type: String,
+          enum: ['pending', 'paid', 'failed', 'refunded'],
+          default: 'pending'
+        },
+        paymentId: String,
+        paidAt: Date,
+        paymentMethod: String,
+        gatewayResponse: mongoose.Schema.Types.Mixed
+      },
+      
+      // Final Payment (50%)
+      finalPayment: {
+        amount: Number,
+        status: {
+          type: String,
+          enum: ['pending', 'paid', 'failed', 'refunded'],
+          default: 'pending'
+        },
+        paymentId: String,
+        paidAt: Date,
+        paymentMethod: String,
+        gatewayResponse: mongoose.Schema.Types.Mixed
+      },
+      
+      // Overall status
+      overallPaymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
+        enum: ['pending', 'partial', 'completed', 'failed', 'refunded'],
         default: 'pending'
       },
-      paymentId: String,
-      paidAt: Date,
-      paymentMethod: String
+      totalPaid: {
+        type: Number,
+        default: 0
+      }
     }]
   },
   
-  // Confirmation Details
+  // Payment Decision Period - For partial payments
+  paymentDecisionPeriod: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    startedAt: Date,
+    deadline: Date,
+    
+    // Member decisions during partial payment situation
+    memberDecisions: [{
+      userId: String,
+      decision: {
+        type: String,
+        enum: ['continue', 'cancel', 'waiting'],
+        default: 'waiting'
+      },
+      decidedAt: Date
+    }],
+    
+    // Overall decision outcome
+    finalDecision: {
+      type: String,
+      enum: ['continue', 'cancel', 'pending'],
+      default: 'pending'
+    },
+    decidedAt: Date
+  },
   confirmedAt: {
     type: Date
   },
@@ -198,12 +298,41 @@ confirmedTripSchema.virtual('allMembersConfirmed').get(function() {
 });
 
 // Virtual for checking payment status
-confirmedTripSchema.virtual('allMembersPaid').get(function() {
+confirmedTripSchema.virtual('allMembersUpfrontPaid').get(function() {
   if (!this.paymentInfo.memberPayments || this.paymentInfo.memberPayments.length === 0) {
     return false;
   }
-  const paidCount = this.paymentInfo.memberPayments.filter(mp => mp.status === 'paid').length;
-  return paidCount === this.currentMemberCount;
+  const upfrontPaidCount = this.paymentInfo.memberPayments.filter(mp => 
+    mp.upfrontPayment && mp.upfrontPayment.status === 'paid'
+  ).length;
+  return upfrontPaidCount === this.currentMemberCount;
+});
+
+confirmedTripSchema.virtual('allMembersFinalPaid').get(function() {
+  if (!this.paymentInfo.memberPayments || this.paymentInfo.memberPayments.length === 0) {
+    return false;
+  }
+  const finalPaidCount = this.paymentInfo.memberPayments.filter(mp => 
+    mp.finalPayment && mp.finalPayment.status === 'paid'
+  ).length;
+  return finalPaidCount === this.currentMemberCount;
+});
+
+confirmedTripSchema.virtual('upfrontPaymentStats').get(function() {
+  if (!this.paymentInfo.memberPayments || this.paymentInfo.memberPayments.length === 0) {
+    return { paid: 0, pending: 0, total: this.currentMemberCount };
+  }
+  
+  const stats = this.paymentInfo.memberPayments.reduce((acc, mp) => {
+    if (mp.upfrontPayment && mp.upfrontPayment.status === 'paid') {
+      acc.paid++;
+    } else {
+      acc.pending++;
+    }
+    return acc;
+  }, { paid: 0, pending: 0, total: this.currentMemberCount });
+  
+  return stats;
 });
 
 // Instance methods
@@ -230,29 +359,58 @@ confirmedTripSchema.methods.addAction = function(userId, action, details = {}) {
   });
 };
 
-confirmedTripSchema.methods.updatePaymentStatus = function(userId, paymentId, status, amount = 0) {
+confirmedTripSchema.methods.updatePaymentStatus = function(userId, phase, paymentId, status, amount = 0, gatewayResponse = {}) {
   let memberPayment = this.paymentInfo.memberPayments.find(mp => mp.userId === userId);
   if (!memberPayment) {
     memberPayment = {
       userId,
-      amount,
-      status: 'pending',
-      paymentId: null
+      upfrontPayment: { amount: 0, status: 'pending' },
+      finalPayment: { amount: 0, status: 'pending' },
+      overallPaymentStatus: 'pending',
+      totalPaid: 0
     };
     this.paymentInfo.memberPayments.push(memberPayment);
   }
   
-  memberPayment.paymentId = paymentId;
-  memberPayment.status = status;
-  if (status === 'paid') {
-    memberPayment.paidAt = new Date();
-    memberPayment.amount = amount;
+  // Update specific phase payment
+  if (phase === 'upfront') {
+    memberPayment.upfrontPayment.paymentId = paymentId;
+    memberPayment.upfrontPayment.status = status;
+    memberPayment.upfrontPayment.gatewayResponse = gatewayResponse;
+    if (status === 'paid') {
+      memberPayment.upfrontPayment.amount = amount;
+      memberPayment.upfrontPayment.paidAt = new Date();
+    }
+  } else if (phase === 'final') {
+    memberPayment.finalPayment.paymentId = paymentId;
+    memberPayment.finalPayment.status = status;
+    memberPayment.finalPayment.gatewayResponse = gatewayResponse;
+    if (status === 'paid') {
+      memberPayment.finalPayment.amount = amount;
+      memberPayment.finalPayment.paidAt = new Date();
+    }
+  }
+  
+  // Calculate total paid and overall status
+  memberPayment.totalPaid = 
+    (memberPayment.upfrontPayment.status === 'paid' ? memberPayment.upfrontPayment.amount : 0) +
+    (memberPayment.finalPayment.status === 'paid' ? memberPayment.finalPayment.amount : 0);
+  
+  // Update overall payment status
+  if (memberPayment.upfrontPayment.status === 'paid' && memberPayment.finalPayment.status === 'paid') {
+    memberPayment.overallPaymentStatus = 'completed';
+  } else if (memberPayment.upfrontPayment.status === 'paid' || memberPayment.finalPayment.status === 'paid') {
+    memberPayment.overallPaymentStatus = 'partial';
+  } else if (memberPayment.upfrontPayment.status === 'failed' || memberPayment.finalPayment.status === 'failed') {
+    memberPayment.overallPaymentStatus = 'failed';
+  } else {
+    memberPayment.overallPaymentStatus = 'pending';
   }
   
   // Update member confirmation payment status
   const memberConfirmation = this.memberConfirmations.find(mc => mc.userId === userId);
   if (memberConfirmation) {
-    memberConfirmation.paymentStatus = status;
+    memberConfirmation.paymentStatus = memberPayment.overallPaymentStatus;
   }
 };
 
