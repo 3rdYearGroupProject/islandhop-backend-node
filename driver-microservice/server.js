@@ -27,7 +27,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://2022cs056:dH4aTFn3IOe
 })
 .catch((error) => {
   console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
+  console.log('⚠️ Server will continue running without database connection');
+  // Don't exit, continue running for testing
 });
 
 // Health check endpoint
@@ -65,7 +66,17 @@ app.get('/api/drivers/:driverId/analytics/hours/busy', controllers.getBusyHours)
 // Additional Analytics Routes (frontend expects these specific endpoints)
 app.get('/api/drivers/:driverId/top-routes', controllers.getTopRoutesAnalytics);
 app.get('/api/drivers/:driverId/busy-hours', controllers.getBusyHoursAnalytics);
-app.get('/api/drivers/:driverId/weekly-earnings', controllers.getWeeklyEarningsChart);
+// Removed old weekly-earnings route to avoid conflicts
+
+// DRIVER EARNINGS PAGE ENDPOINTS (using :email parameter)
+app.get('/api/drivers/:email/earnings', controllers.getEarningsNew);
+app.get('/api/drivers/:email/transactions', controllers.getTransactionsNew);
+app.get('/api/drivers/:email/bank-details', controllers.getBankDetailsNew);
+
+// Legacy endpoints for backward compatibility
+app.get('/api/drivers/:email/analytics', controllers.getAnalyticsNew);
+app.get('/api/drivers/:email/weekly-earnings', controllers.getWeeklyEarningsNew);
+app.get('/api/drivers/:email/trips', controllers.getTripsNew);
 
 // Trips Routes
 app.get('/:driverId/trips', controllers.getTrips);

@@ -91,4 +91,4 @@ const driverSchema = new mongoose.Schema({
 // Index for faster email lookups
 driverSchema.index({ email: 1 });
 
-module.exports = mongoose.model('Driver', driverSchema);
+module.exports = mongoose.model('Driver', driverSchema, 'Driver_info');
