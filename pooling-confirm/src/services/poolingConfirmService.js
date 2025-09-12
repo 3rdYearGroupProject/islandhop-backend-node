@@ -1,10 +1,5 @@
-const ConfirmedTrip = require('../models/Confi      // 6. Calculate payment deadlines and amounts
-      const upfrontDeadline = moment().add(confirmationData.upfrontPaymentHours || 48, 'hours').toDate();
-      const finalDeadline = moment(confirmationData.tripStartDate).subtract(confirmationData.finalPaymentDaysBefore || 7, 'days').toDate();
-      
-      const pricePerPerson = confirmationData.pricePerPerson || 0;
-      const upfrontAmount = Math.round(pricePerPerson * 0.5); // 50%
-      const finalAmount = pricePerPerson - upfrontAmount; // Remaining amountedTrip');
+const ConfirmedTrip = require('../models/ConfirmedTrip');
+  
 const PaymentTransaction = require('../models/PaymentTransaction');
 const logger = require('../config/logger');
 const axios = require('axios');
