@@ -147,6 +147,28 @@
           "path": ["api", "v1", "pooling-confirm", "user", "{{userId}}", "trips"]
         }
       }
+    },
+    {
+      "name": "Complete Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/pooling-confirm/{{test_trip_id}}/complete-payment",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "pooling-confirm", "{{test_trip_id}}", "complete-payment"]
+        },
+        "description": "Complete payment for a user in a specific trip. If all payments are completed, automatically activates the trip."
+      }
     }
   ],
   "variable": [
@@ -163,6 +185,11 @@
     {
       "key": "userId",
       "value": "user123",
+      "type": "string"
+    },
+    {
+      "key": "test_trip_id",
+      "value": "TRIP123",
       "type": "string"
     }
   ]

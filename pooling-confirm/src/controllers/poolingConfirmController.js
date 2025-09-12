@@ -580,6 +580,72 @@ class PoolingConfirmController {
       });
     }
   }
+
+  /**
+   * POST /api/v1/pooling-confirm/:tripId/complete-payment
+   * Complete payment for a user in a specific trip
+   */
+  async completePayment(req, res) {
+    try {
+      const { tripId } = req.params;
+      const { userId } = req.body;
+
+      logger.info(`🔍 COMPLETE PAYMENT REQUEST:`);
+      logger.info(`📋 Method: ${req.method}`);
+      logger.info(`📋 URL: ${req.originalUrl}`);
+      logger.info(`📋 TripId: ${tripId}`);
+      logger.info(`📋 UserId: ${userId}`);
+
+      // Validation
+      if (!tripId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trip ID is required'
+        });
+      }
+
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+      }
+
+      // Call service method
+      const result = await poolingConfirmService.completePayment(tripId, userId);
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+
+    } catch (error) {
+      logger.error('Error in completePayment:', error);
+      
+      // Determine HTTP status code based on specific error types
+      let statusCode = 500; // Default internal server error
+      
+      if (error.message.includes('No confirmed trip found') || error.message.includes('not found')) {
+        statusCode = 404; // Trip not found
+      } else if (error.message.includes('not a member') || error.message.includes('Unauthorized')) {
+        statusCode = 403; // User not authorized
+      } else if (error.message.includes('No pending payment') || error.message.includes('already completed')) {
+        statusCode = 409; // Conflict - payment already processed or not available
+      } else if (error.message.includes('Failed to activate trip')) {
+        statusCode = 502; // Bad Gateway - external service error
+      }
+      
+      res.status(statusCode).json({
+        success: false,
+        message: error.message,
+        errorType: statusCode === 404 ? 'TRIP_NOT_FOUND' :
+                   statusCode === 403 ? 'UNAUTHORIZED' :
+                   statusCode === 409 ? 'PAYMENT_CONFLICT' :
+                   statusCode === 502 ? 'EXTERNAL_SERVICE_ERROR' : 'INTERNAL_ERROR'
+      });
+    }
+  }
 }
 
 module.exports = new PoolingConfirmController();
