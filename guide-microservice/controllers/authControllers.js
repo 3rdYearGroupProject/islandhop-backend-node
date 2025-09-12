@@ -6,11 +6,19 @@ const findGuideByEmail = async (email) => {
   try {
     console.log(`🔍 Looking up guide by email: ${email}`);
     
-    // Try to find guide by email
-    const guide = await Guide.findOne({ email: email.toLowerCase() });
+    // Query the Guide_info collection directly (similar to driver microservice)
+    const db = mongoose.connection.db;
+    const collection = db.collection('Guide_info');
+    const guide = await collection.findOne({ 
+      $or: [
+        { email: email },
+        { "personalInfo.email": email }
+      ]
+    });
     
     if (guide) {
       console.log(`✅ Found guide: ${guide.personalInfo?.firstName || 'N/A'} ${guide.personalInfo?.lastName || 'N/A'} (${guide.email})`);
+      console.log(`📊 Guide has ${guide.tours?.active?.length || 0} active, ${guide.tours?.pending?.length || 0} pending, ${guide.tours?.history?.length || 0} history tours`);
       return guide;
     } else {
       console.log(`❌ No guide found with email: ${email}`);
@@ -37,8 +45,12 @@ const getLoggedUserEmail = (req) => {
   // You could also check headers:
   // const email = req.headers['x-user-email'] || req.params.guideId;
   
-  console.log(`🔐 Extracted user email: ${email}`);
-  return email;
+  console.log(`🔐 Raw guideId parameter: "${req.params.guideId}"`);
+  console.log(`🔐 Extracted user email: "${email}"`);
+  console.log(`🔐 URL decoded email: "${decodeURIComponent(email || '')}"`);
+  
+  // Return URL decoded email to handle @ symbol encoding
+  return email ? decodeURIComponent(email) : email;
 };
 
 // DASHBOARD - Returns authenticated guide's data
@@ -554,7 +566,12 @@ const getTours = async (req, res) => {
     const parsedPage = Math.max(parseInt(page) || 1, 1);
     const skip = (parsedPage - 1) * parsedLimit;
     
+    console.log(`🌐 getTours called with params:`, req.params);
+    console.log(`🔍 Query params:`, req.query);
+    console.log(`📧 Extracted email: "${userEmail}"`);
+    
     if (!userEmail) {
+      console.log('❌ No user email provided - authentication failed');
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
@@ -564,6 +581,7 @@ const getTours = async (req, res) => {
     const guide = await findGuideByEmail(userEmail);
 
     if (!guide) {
+      console.log(`❌ Guide not found for email: "${userEmail}"`);
       return res.status(404).json({
         success: false,
         message: 'Guide profile not found'
@@ -611,6 +629,13 @@ const getTours = async (req, res) => {
     });
 
     totalCount = tours.length;
+    
+    console.log(`🔍 Debug - Tours collected: ${totalCount}`);
+    if (totalCount > 0) {
+      console.log(`🎯 Sample tour: ${tours[0].tourPackage || tours[0].title}`);
+    } else {
+      console.log('❌ No tours found in any category');
+    }
     
     // Apply pagination
     const paginatedTours = tours.slice(skip, skip + parsedLimit);
