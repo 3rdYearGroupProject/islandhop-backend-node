@@ -7,12 +7,13 @@ const poolingConfirmController = require('../controllers/poolingConfirmControlle
  * @desc    Initiate trip confirmation process
  * @access  Private (Group Creator only)
  * @body    {
- *            groupId: string,
+ *            tripId: string (the actual trip ID),
+ *            groupId: string (the group's _id from MongoDB),
  *            userId: string,
  *            minMembers?: number,
  *            maxMembers?: number,
- *            tripStartDate: string (ISO date),
- *            tripEndDate: string (ISO date),
+ *            tripStartDate?: string (ISO date),
+ *            tripEndDate?: string (ISO date),
  *            confirmationHours?: number,
  *            totalAmount?: number,
  *            pricePerPerson?: number,
@@ -24,13 +25,22 @@ const poolingConfirmController = require('../controllers/poolingConfirmControlle
 router.post('/initiate', poolingConfirmController.initiateConfirmation);
 
 /**
- * @route   POST /api/v1/pooling-confirm/:confirmedTripId/confirm
+ * @route   GET /api/v1/pooling-confirm/trip/:tripId/status
+ * @desc    Get confirmation status by tripId (helper for frontend)
+ * @access  Private (Trip Members only)
+ * @params  tripId: string (UUID from pooling service)
+ * @query   userId: string (required)
+ */
+router.get('/trip/:tripId/status', poolingConfirmController.getTripConfirmationStatus);
+
+/**
+ * @route   POST /api/v1/pooling-confirm/:tripId/confirm
  * @desc    Member confirms their participation in the trip
  * @access  Private (Trip Members only)
- * @params  confirmedTripId: string (MongoDB ObjectId)
+ * @params  tripId: string (UUID from pooling service)
  * @body    { userId: string }
  */
-router.post('/:confirmedTripId/confirm', poolingConfirmController.confirmParticipation);
+router.post('/:tripId/confirm', poolingConfirmController.confirmParticipation);
 
 /**
  * @route   GET /api/v1/pooling-confirm/:confirmedTripId/status
@@ -42,22 +52,13 @@ router.post('/:confirmedTripId/confirm', poolingConfirmController.confirmPartici
 router.get('/:confirmedTripId/status', poolingConfirmController.getConfirmationStatus);
 
 /**
- * @route   GET /api/v1/pooling-confirm/:confirmedTripId/details
- * @desc    Get comprehensive trip details with all member payment information
- * @access  Private (Trip Members only)
- * @params  confirmedTripId: string (MongoDB ObjectId)
- * @query   userId: string
- */
-router.get('/:confirmedTripId/details', poolingConfirmController.getComprehensiveTripDetails);
-
-/**
- * @route   POST /api/v1/pooling-confirm/:confirmedTripId/cancel
+ * @route   POST /api/v1/pooling-confirm/:tripId/cancel
  * @desc    Cancel trip confirmation (Creator only)
  * @access  Private (Trip Creator only)
- * @params  confirmedTripId: string (MongoDB ObjectId)
+ * @params  tripId: string (UUID from pooling service)
  * @body    { userId: string, reason?: string }
  */
-router.post('/:confirmedTripId/cancel', poolingConfirmController.cancelConfirmation);
+router.post('/:tripId/cancel', poolingConfirmController.cancelConfirmation);
 
 /**
  * @route   GET /api/v1/pooling-confirm/user/:userId/trips
@@ -74,5 +75,20 @@ router.get('/user/:userId/trips', poolingConfirmController.getUserConfirmedTrips
  * @access  Public
  */
 router.get('/health', poolingConfirmController.healthCheck);
+
+/**
+ * @route   GET /api/v1/pooling-confirm/debug/groups
+ * @desc    Debug endpoint to list all available groups
+ * @access  Development only
+ */
+router.get('/debug/groups', poolingConfirmController.debugGroups);
+
+/**
+ * @route   GET /api/v1/pooling-confirm/debug/trip/:tripId
+ * @desc    Debug endpoint to get complete trip details
+ * @access  Development only
+ * @params  tripId: string (UUID from pooling service)
+ */
+router.get('/debug/trip/:tripId', poolingConfirmController.debugTripDetails);
 
 module.exports = router;
