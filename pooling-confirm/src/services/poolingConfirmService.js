@@ -807,6 +807,175 @@ class PoolingConfirmService {
     }
   }
 
+  /**
+   * Complete payment for a user in a specific trip
+   */
+  async completePayment(tripId, userId) {
+    try {
+      logger.info(`Completing payment for user ${userId} in trip ${tripId}`);
+
+      // Find confirmed trip by tripId
+      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+      if (!confirmedTrip) {
+        throw new Error(`No confirmed trip found for tripId: ${tripId}`);
+      }
+
+      // Check if user is a member of this trip
+      if (!confirmedTrip.memberIds.includes(userId)) {
+        throw new Error(`User ${userId} is not a member of trip ${tripId}`);
+      }
+
+      // Find the payment transaction for this user and trip
+      // Try to find by both confirmedTripId and tripId for flexibility
+      let paymentTransaction = await PaymentTransaction.findOne({
+        confirmedTripId: confirmedTrip._id,
+        userId: userId,
+        status: 'pending'
+      });
+
+      // If not found by confirmedTripId, try by tripId (fallback for existing data)
+      if (!paymentTransaction) {
+        paymentTransaction = await PaymentTransaction.findOne({
+          tripId: tripId,
+          userId: userId,
+          status: 'pending'
+        });
+      }
+
+      // Debug logging
+      logger.info(`🔍 Payment transaction search results:`);
+      logger.info(`📋 ConfirmedTripId: ${confirmedTrip._id}`);
+      logger.info(`📋 TripId: ${tripId}`);
+      logger.info(`📋 UserId: ${userId}`);
+      logger.info(`📋 Transaction found: ${paymentTransaction ? 'YES' : 'NO'}`);
+      
+      if (paymentTransaction) {
+        logger.info(`📋 Transaction details: ${JSON.stringify({
+          id: paymentTransaction._id,
+          transactionId: paymentTransaction.transactionId,
+          confirmedTripId: paymentTransaction.confirmedTripId,
+          tripId: paymentTransaction.tripId,
+          status: paymentTransaction.status
+        })}`);
+      } else {
+        // Additional debug: check what transactions exist for this user
+        const allUserTransactions = await PaymentTransaction.find({ userId: userId });
+        logger.info(`📋 All transactions for user ${userId}: ${JSON.stringify(allUserTransactions.map(t => ({
+          id: t._id,
+          tripId: t.tripId,
+          confirmedTripId: t.confirmedTripId,
+          status: t.status
+        })))}`);
+      }
+
+      if (!paymentTransaction) {
+        throw new Error(`No pending payment transaction found for user ${userId} in trip ${tripId}`);
+      }
+
+      // Mark payment transaction as completed
+      paymentTransaction.markCompleted(`gateway_txn_${Date.now()}`, {
+        completedAt: new Date(),
+        method: 'manual_completion'
+      });
+      await paymentTransaction.save();
+
+      // Update payment status in confirmed trip
+      confirmedTrip.updatePaymentStatus(userId, paymentTransaction.transactionId, 'completed', paymentTransaction.amount);
+      
+      // Add action log
+      confirmedTrip.addAction(userId, 'PAYMENT_COMPLETED', {
+        amount: paymentTransaction.amount,
+        transactionId: paymentTransaction.transactionId
+      });
+
+      await confirmedTrip.save();
+
+      // Check if all payments are completed
+      const allPaymentsCompleted = await this.checkAllPaymentsCompleted(confirmedTrip._id);
+      
+      if (allPaymentsCompleted) {
+        logger.info(`All payments completed for trip ${tripId}. Activating trip.`);
+        
+        // Update trip status to payment_completed
+        confirmedTrip.status = 'payment_completed';
+        await confirmedTrip.save();
+        
+        // Send activation request to active-trip service
+        await this.activateTrip(tripId);
+      }
+
+      return {
+        success: true,
+        message: 'Payment completed successfully',
+        data: {
+          tripId,
+          userId,
+          transactionId: paymentTransaction.transactionId,
+          amount: paymentTransaction.amount,
+          allPaymentsCompleted
+        }
+      };
+
+    } catch (error) {
+      logger.error(`Error completing payment for user ${userId} in trip ${tripId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if all payments for a trip are completed
+   */
+  async checkAllPaymentsCompleted(confirmedTripId) {
+    try {
+      const totalTransactions = await PaymentTransaction.countDocuments({
+        confirmedTripId: confirmedTripId
+      });
+
+      const completedTransactions = await PaymentTransaction.countDocuments({
+        confirmedTripId: confirmedTripId,
+        status: 'completed'
+      });
+
+      return totalTransactions > 0 && totalTransactions === completedTransactions;
+    } catch (error) {
+      logger.error(`Error checking payment completion status:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Activate trip by sending request to active-trip service
+   */
+  async activateTrip(tripId) {
+    try {
+      const activationUrl = 'http://localhost:5006/api/new_activate_trip';
+      
+      const response = await axios.post(activationUrl, {
+        tripId: tripId
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      });
+
+      logger.info(`Trip ${tripId} activated successfully:`, response.data);
+      return response.data;
+
+    } catch (error) {
+      logger.error(`Error activating trip ${tripId}:`, error.message);
+      
+      if (error.response) {
+        logger.error(`Activation service response:`, error.response.data);
+        throw new Error(`Failed to activate trip: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`);
+      } else if (error.request) {
+        throw new Error(`Failed to activate trip: No response from activation service`);
+      } else {
+        throw new Error(`Failed to activate trip: ${error.message}`);
+      }
+    }
+  }
+
   async getUserName(userId) {
     try {
       // This would integrate with your user service to get user name

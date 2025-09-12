@@ -91,4 +91,13 @@ router.get('/debug/groups', poolingConfirmController.debugGroups);
  */
 router.get('/debug/trip/:tripId', poolingConfirmController.debugTripDetails);
 
+/**
+ * @route   POST /api/v1/pooling-confirm/:tripId/complete-payment
+ * @desc    Complete payment for a user in a specific trip
+ * @access  Private (Payment system or admin)
+ * @params  tripId: string (UUID from pooling service)
+ * @body    { userId: string }
+ */
+router.post('/:tripId/complete-payment', poolingConfirmController.completePayment);
+
 module.exports = router;
