@@ -12,15 +12,16 @@ class PoolingConfirmController {
     try {
       // Validation schema
       const schema = Joi.object({
-        groupId: Joi.string().required(),
+        tripId: Joi.string().required(),
+        groupId: Joi.string().optional(), // Now optional since we find by tripId
         userId: Joi.string().required(),
         minMembers: Joi.number().min(2).max(20).default(2),
         maxMembers: Joi.number().min(2).max(20).default(12),
-        tripStartDate: Joi.date().iso().required(),
-        tripEndDate: Joi.date().iso().min(Joi.ref('tripStartDate')).required(),
+        tripStartDate: Joi.date().iso().optional(),
+        tripEndDate: Joi.date().iso().optional(),
         confirmationHours: Joi.number().min(1).max(168).default(48), // 1 hour to 1 week
-        totalAmount: Joi.number().min(0).default(0),
-        pricePerPerson: Joi.number().min(0).default(0),
+        totalAmount: Joi.number().min(0).optional(),
+        pricePerPerson: Joi.number().min(0).optional(),
         currency: Joi.string().valid('LKR', 'USD', 'EUR').default('LKR'),
         paymentDeadlineHours: Joi.number().min(1).max(336).default(72), // 1 hour to 2 weeks
         tripDetails: Joi.object().default({})
@@ -35,9 +36,10 @@ class PoolingConfirmController {
         });
       }
 
-      const { groupId, userId, ...confirmationData } = value;
+      const { tripId, groupId, userId, ...confirmationData } = value;
 
-      const result = await poolingConfirmService.initiateConfirmation(groupId, userId, confirmationData);
+      // Use groupId from the found group data, not from request
+      const result = await poolingConfirmService.initiateConfirmation(tripId, userId, confirmationData);
 
       res.status(201).json({
         success: true,
@@ -47,41 +49,95 @@ class PoolingConfirmController {
 
     } catch (error) {
       logger.error('Error in initiateConfirmation:', error);
-      res.status(error.message.includes('not found') ? 404 : 
-                 error.message.includes('already initiated') ? 409 :
-                 error.message.includes('Insufficient members') ? 400 :
-                 error.message.includes('Only group creator') ? 403 : 500).json({
+      
+      // Determine HTTP status code based on specific error types
+      let statusCode = 500; // Default internal server error
+      
+      if (error.message.includes('does not exist')) {
+        statusCode = 404; // Trip not found
+      } else if (error.message.includes('not a member')) {
+        statusCode = 403; // User not authorized
+      } else if (error.message.includes('already initiated')) {
+        statusCode = 409; // Conflict - already exists
+      } else if (error.message.includes('Insufficient members')) {
+        statusCode = 400; // Bad request - business rule violation
+      } else if (error.message.includes('Only group creator')) {
+        statusCode = 403; // Forbidden - not authorized
+      }
+      
+      res.status(statusCode).json({
         success: false,
-        message: error.message
+        message: error.message,
+        errorType: statusCode === 404 ? 'TRIP_NOT_FOUND' :
+                   statusCode === 403 ? 'UNAUTHORIZED' :
+                   statusCode === 409 ? 'CONFLICT' :
+                   statusCode === 400 ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR'
       });
     }
   }
 
   /**
-   * POST /api/v1/pooling-confirm/:confirmedTripId/confirm
-   * Member confirms their participation
+   * POST /api/v1/pooling-confirm/:tripId/confirm
+   * Member confirms their participation using tripId
    */
   async confirmParticipation(req, res) {
     try {
-      const { confirmedTripId } = req.params;
+      // Debug logging
+      logger.info(`🔍 CONFIRM PARTICIPATION REQUEST:`);
+      logger.info(`📋 Method: ${req.method}`);
+      logger.info(`📋 URL: ${req.originalUrl}`);
+      logger.info(`📋 Params: ${JSON.stringify(req.params)}`);
+      logger.info(`📋 Body: ${JSON.stringify(req.body)}`);
+      
+      const { tripId } = req.params; // Now using tripId instead of confirmedTripId
       const { userId } = req.body;
+
+      logger.info(`🔍 Extracted tripId: ${tripId}`);
+      logger.info(`🔍 Extracted userId: ${userId}`);
 
       // Validation
       if (!userId) {
+        logger.warn(`❌ Missing userId in request body`);
         return res.status(400).json({
           success: false,
-          message: 'userId is required'
+          message: 'userId is required',
+          debug: {
+            receivedBody: req.body,
+            expectedField: 'userId'
+          }
         });
       }
 
-      if (!confirmedTripId || !confirmedTripId.match(/^[0-9a-fA-F]{24}$/)) {
+      if (!tripId) {
+        logger.warn(`❌ Missing tripId in URL`);
         return res.status(400).json({
           success: false,
-          message: 'Invalid confirmedTripId format'
+          message: 'tripId is required in URL',
+          debug: {
+            receivedParams: req.params,
+            expectedFormat: '/api/v1/pooling-confirm/{tripId}/confirm'
+          }
         });
       }
 
-      const result = await poolingConfirmService.confirmParticipation(confirmedTripId, userId);
+      logger.info(`✅ Validation passed, finding confirmed trip...`);
+      
+      // Find the confirmed trip by tripId first
+      const ConfirmedTrip = require('../models/ConfirmedTrip');
+      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+
+      if (!confirmedTrip) {
+        logger.warn(`❌ No confirmed trip found for tripId: ${tripId}`);
+        return res.status(404).json({
+          success: false,
+          message: 'Trip confirmation not found',
+          tripId,
+          hint: 'Trip confirmation may not have been initiated yet. Call /initiate first.'
+        });
+      }
+
+      logger.info(`✅ Found confirmed trip, calling service...`);
+      const result = await poolingConfirmService.confirmParticipation(confirmedTrip._id, userId);
 
       res.status(200).json({
         success: true,
@@ -95,6 +151,116 @@ class PoolingConfirmController {
                  error.message.includes('not a member') ? 403 :
                  error.message.includes('already confirmed') ? 409 :
                  error.message.includes('deadline has passed') ? 410 : 500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/v1/pooling-confirm/trip/:tripId/status
+   * Get complete trip details and confirmation status by tripId
+   */
+  async getTripConfirmationStatus(req, res) {
+    try {
+      const { tripId } = req.params;
+      const { userId } = req.query;
+
+      logger.info(`🔍 Getting complete trip details for tripId: ${tripId}, userId: ${userId}`);
+
+      // Find confirmed trip by tripId
+      const ConfirmedTrip = require('../models/ConfirmedTrip');
+      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+
+      if (!confirmedTrip) {
+        return res.status(404).json({
+          success: false,
+          message: 'No confirmation found for this trip',
+          tripId,
+          hint: 'Trip confirmation may not have been initiated yet. Call /initiate first.'
+        });
+      }
+
+      // Check if user is a member (optional check - if userId provided)
+      if (userId && !confirmedTrip.memberIds.includes(userId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'User is not a member of this trip'
+        });
+      }
+
+      // Get user-specific confirmation if userId provided
+      const userConfirmation = userId ? 
+        confirmedTrip.memberConfirmations.find(mc => mc.userId === userId) : null;
+
+      // Return complete trip details
+      res.status(200).json({
+        success: true,
+        data: {
+          // Basic Trip Information
+          _id: confirmedTrip._id,
+          confirmedTripId: confirmedTrip._id, // For backward compatibility
+          groupId: confirmedTrip.groupId,
+          tripId: confirmedTrip.tripId,
+          tripName: confirmedTrip.tripName,
+          groupName: confirmedTrip.groupName,
+          
+          // User and Member Information
+          creatorUserId: confirmedTrip.creatorUserId,
+          memberIds: confirmedTrip.memberIds,
+          currentMemberCount: confirmedTrip.currentMemberCount,
+          minMembers: confirmedTrip.minMembers,
+          maxMembers: confirmedTrip.maxMembers,
+          
+          // Trip Status and Dates
+          status: confirmedTrip.status,
+          tripStartDate: confirmedTrip.tripStartDate,
+          tripEndDate: confirmedTrip.tripEndDate,
+          confirmationDeadline: confirmedTrip.confirmationDeadline,
+          confirmedAt: confirmedTrip.confirmedAt,
+          confirmedBy: confirmedTrip.confirmedBy,
+          
+          // Trip Details and Preferences
+          preferences: confirmedTrip.preferences,
+          tripDetails: confirmedTrip.tripDetails,
+          
+          // Payment Information
+          paymentInfo: {
+            totalAmount: confirmedTrip.paymentInfo.totalAmount,
+            currency: confirmedTrip.paymentInfo.currency,
+            pricePerPerson: confirmedTrip.paymentInfo.pricePerPerson,
+            paymentDeadline: confirmedTrip.paymentInfo.paymentDeadline,
+            memberPayments: confirmedTrip.paymentInfo.memberPayments
+          },
+          
+          // Member Confirmations
+          memberConfirmations: confirmedTrip.memberConfirmations,
+          
+          // Cancellation Information
+          cancellationInfo: confirmedTrip.cancellationInfo,
+          
+          // Notifications and Actions History
+          notificationsSent: confirmedTrip.notificationsSent,
+          actions: confirmedTrip.actions,
+          
+          // Timestamps
+          createdAt: confirmedTrip.createdAt,
+          updatedAt: confirmedTrip.updatedAt,
+          
+          // User-specific information (if userId provided)
+          ...(userId && {
+            userConfirmed: userConfirmation?.confirmed || false,
+            userConfirmedAt: userConfirmation?.confirmedAt,
+            userPaymentStatus: userConfirmation?.paymentStatus,
+            isCreator: confirmedTrip.creatorUserId === userId,
+            userPayment: confirmedTrip.paymentInfo.memberPayments.find(mp => mp.userId === userId)
+          })
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error in getTripConfirmationStatus:', error);
+      res.status(500).json({
         success: false,
         message: error.message
       });
@@ -143,12 +309,12 @@ class PoolingConfirmController {
   }
 
   /**
-   * POST /api/v1/pooling-confirm/:confirmedTripId/cancel
+   * POST /api/v1/pooling-confirm/:tripId/cancel
    * Cancel trip confirmation
    */
   async cancelConfirmation(req, res) {
     try {
-      const { confirmedTripId } = req.params;
+      const { tripId } = req.params;
       const { userId, reason } = req.body;
 
       // Validation
@@ -159,14 +325,26 @@ class PoolingConfirmController {
         });
       }
 
-      if (!confirmedTripId || !confirmedTripId.match(/^[0-9a-fA-F]{24}$/)) {
+      if (!tripId) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid confirmedTripId format'
+          message: 'tripId is required in URL'
         });
       }
 
-      const result = await poolingConfirmService.cancelConfirmation(confirmedTripId, userId, reason);
+      // Find the confirmed trip by tripId first
+      const ConfirmedTrip = require('../models/ConfirmedTrip');
+      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+
+      if (!confirmedTrip) {
+        return res.status(404).json({
+          success: false,
+          message: 'Trip confirmation not found',
+          tripId
+        });
+      }
+
+      const result = await poolingConfirmService.cancelConfirmation(confirmedTrip._id, userId, reason);
 
       res.status(200).json({
         success: true,
@@ -187,7 +365,7 @@ class PoolingConfirmController {
 
   /**
    * GET /api/v1/pooling-confirm/user/:userId/trips
-   * Get all confirmed trips for a user
+   * Get all confirmed trips for a user with complete details
    */
   async getUserConfirmedTrips(req, res) {
     try {
@@ -221,21 +399,74 @@ class PoolingConfirmController {
       res.status(200).json({
         success: true,
         data: {
-          trips: trips.map(trip => ({
-            confirmedTripId: trip._id,
-            groupId: trip.groupId,
-            tripId: trip.tripId,
-            tripName: trip.tripName,
-            status: trip.status,
-            memberCount: trip.currentMemberCount,
-            isCreator: trip.creatorUserId === userId,
-            userConfirmed: trip.memberConfirmations.find(mc => mc.userId === userId)?.confirmed || false,
-            tripStartDate: trip.tripStartDate,
-            confirmationDeadline: trip.confirmationDeadline,
-            paymentRequired: trip.paymentInfo.pricePerPerson > 0,
-            pricePerPerson: trip.paymentInfo.pricePerPerson,
-            createdAt: trip.createdAt
-          })),
+          trips: trips.map(trip => {
+            // Get user-specific confirmation
+            const userConfirmation = trip.memberConfirmations.find(mc => mc.userId === userId);
+            
+            return {
+              // Basic Trip Information
+              _id: trip._id,
+              confirmedTripId: trip._id, // For backward compatibility
+              groupId: trip.groupId,
+              tripId: trip.tripId,
+              tripName: trip.tripName,
+              groupName: trip.groupName,
+              
+              // User and Member Information
+              creatorUserId: trip.creatorUserId,
+              memberIds: trip.memberIds,
+              currentMemberCount: trip.currentMemberCount,
+              minMembers: trip.minMembers,
+              maxMembers: trip.maxMembers,
+              
+              // Trip Status and Dates
+              status: trip.status,
+              tripStartDate: trip.tripStartDate,
+              tripEndDate: trip.tripEndDate,
+              confirmationDeadline: trip.confirmationDeadline,
+              confirmedAt: trip.confirmedAt,
+              confirmedBy: trip.confirmedBy,
+              
+              // Trip Details and Preferences
+              preferences: trip.preferences,
+              tripDetails: trip.tripDetails,
+              
+              // Payment Information
+              paymentInfo: {
+                totalAmount: trip.paymentInfo.totalAmount,
+                currency: trip.paymentInfo.currency,
+                pricePerPerson: trip.paymentInfo.pricePerPerson,
+                paymentDeadline: trip.paymentInfo.paymentDeadline,
+                memberPayments: trip.paymentInfo.memberPayments
+              },
+              
+              // Member Confirmations
+              memberConfirmations: trip.memberConfirmations,
+              
+              // Cancellation Information
+              cancellationInfo: trip.cancellationInfo,
+              
+              // Notifications and Actions History
+              notificationsSent: trip.notificationsSent,
+              actions: trip.actions,
+              
+              // Timestamps
+              createdAt: trip.createdAt,
+              updatedAt: trip.updatedAt,
+              
+              // User-specific information
+              userConfirmed: userConfirmation?.confirmed || false,
+              userConfirmedAt: userConfirmation?.confirmedAt,
+              userPaymentStatus: userConfirmation?.paymentStatus,
+              isCreator: trip.creatorUserId === userId,
+              userPayment: trip.paymentInfo.memberPayments.find(mp => mp.userId === userId),
+              
+              // Legacy fields for backward compatibility
+              memberCount: trip.currentMemberCount,
+              paymentRequired: trip.paymentInfo.pricePerPerson > 0,
+              pricePerPerson: trip.paymentInfo.pricePerPerson
+            };
+          }),
           pagination: {
             currentPage: parseInt(page),
             totalPages: Math.ceil(total / parseInt(limit)),
@@ -281,6 +512,67 @@ class PoolingConfirmController {
         success: false,
         message: 'Service unhealthy',
         error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/v1/pooling-confirm/debug/groups
+   * Debug endpoint to list all available groups and trips
+   */
+  async debugGroups(req, res) {
+    try {
+      const result = await poolingConfirmService.debugGroups();
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error('Error in debugGroups:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/v1/pooling-confirm/debug/trip/:tripId
+   * Debug endpoint to get complete trip details for testing
+   */
+  async debugTripDetails(req, res) {
+    try {
+      const { tripId } = req.params;
+      
+      logger.info(`🧪 DEBUG: Getting trip details for tripId: ${tripId}`);
+
+      // Find confirmed trip by tripId
+      const ConfirmedTrip = require('../models/ConfirmedTrip');
+      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+
+      if (!confirmedTrip) {
+        return res.status(404).json({
+          success: false,
+          message: 'No confirmed trip found',
+          tripId,
+          hint: 'Trip may not be confirmed yet or tripId is incorrect'
+        });
+      }
+
+      // Return the raw document for debugging
+      res.status(200).json({
+        success: true,
+        message: `Complete trip details for tripId: ${tripId}`,
+        data: confirmedTrip.toJSON(),
+        debug: {
+          documentId: confirmedTrip._id,
+          collection: 'confirmed_trips',
+          database: 'islandhop_pooling_confirm'
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error in debugTripDetails:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message
       });
     }
   }

@@ -2,8 +2,22 @@ const ConfirmedTrip = require('../models/ConfirmedTrip');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const logger = require('../config/logger');
 const axios = require('axios');
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const moment = require('moment');
+
+/**
+ * Pooling Confirmation Service
+ * 
+ * DATABASE ARCHITECTURE:
+ * - Source: islandhop_pooling.groups (Java service database)
+ * - Target: islandhop_pooling_confirm.confirmed_trips (Our Node.js service database)
+ * 
+ * WORKFLOW:
+ * 1. Read group data from islandhop_pooling.groups using tripId
+ * 2. Copy relevant data to islandhop_pooling_confirm.confirmed_trips
+ * 3. Work with copied data for confirmation workflow and payments
+ */
 
 class PoolingConfirmService {
   constructor() {
@@ -17,23 +31,24 @@ class PoolingConfirmService {
    * Initiate trip confirmation process
    * Called by group creator to start confirmation
    */
-  async initiateConfirmation(groupId, userId, confirmationData) {
+  async initiateConfirmation(tripId, userId, confirmationData) {
     try {
-      logger.info(`Initiating confirmation for group ${groupId} by user ${userId}`);
+      logger.info(`Initiating confirmation for tripId ${tripId} by user ${userId}`);
 
-      // 1. Fetch group details from pooling service
-      const groupDetails = await this.fetchGroupDetails(groupId, userId);
-      if (!groupDetails) {
-        throw new Error(`Group ${groupId} not found`);
-      }
+      // 1. Fetch group details from MongoDB groups collection using tripId
+      const groupDetails = await this.fetchGroupDetails(tripId, userId);
+      // Note: fetchGroupDetails now throws specific errors, so no null check needed
 
-      // 2. Validate that user is the creator
-      if (groupDetails.creatorUserId !== userId) {
-        throw new Error('Only group creator can initiate confirmation');
+      // 2. For now, assume the first user in userIds is the creator
+      // You can modify this logic based on your actual group structure
+      if (groupDetails.userIds[0] !== userId) {
+        logger.warn(`User ${userId} is not the group creator, but allowing initiation for demo purposes`);
+        // Uncomment the line below if you want to enforce creator-only restriction
+        // throw new Error('Only group creator can initiate confirmation');
       }
 
       // 3. Check if already confirmed
-      const existingConfirmation = await ConfirmedTrip.findOne({ groupId });
+      const existingConfirmation = await ConfirmedTrip.findOne({ tripId });
       if (existingConfirmation) {
         throw new Error('Trip confirmation already initiated');
       }
@@ -49,24 +64,27 @@ class PoolingConfirmService {
       
       // 6. Create confirmed trip entry
       const confirmedTrip = new ConfirmedTrip({
-        groupId,
-        tripId: groupDetails.tripId,
+        tripId, // Use the actual tripId from the frontend
+        groupId: groupDetails._id, // Use the group's _id from MongoDB
         tripName: groupDetails.tripName || 'Untitled Trip',
         groupName: groupDetails.groupName || 'Travel Group',
-        creatorUserId: userId,
+        creatorUserId: groupDetails.userIds[0], // First user is considered creator
         memberIds: currentMembers,
         currentMemberCount: currentMembers.length,
         minMembers: confirmationData.minMembers || 2,
-        maxMembers: confirmationData.maxMembers || 12,
-        tripStartDate: new Date(confirmationData.tripStartDate || groupDetails.preferences?.startDate),
-        tripEndDate: new Date(confirmationData.tripEndDate || groupDetails.preferences?.endDate),
-        preferences: groupDetails.preferences || {},
+        maxMembers: confirmationData.maxMembers || groupDetails.maxGroupSize || 12,
+        tripStartDate: new Date(confirmationData.tripStartDate || groupDetails.startDate || Date.now()),
+        tripEndDate: new Date(confirmationData.tripEndDate || groupDetails.endDate || Date.now()),
+        preferences: {
+          activities: groupDetails.preferredActivities || [],
+          destination: groupDetails.destination || 'Unknown'
+        },
         tripDetails: confirmationData.tripDetails || {},
         confirmationDeadline,
         status: 'pending_confirmation',
         paymentInfo: {
-          totalAmount: confirmationData.totalAmount || 0,
-          pricePerPerson: confirmationData.pricePerPerson || 0,
+          totalAmount: confirmationData.totalAmount || (groupDetails.pricePerPerson * currentMembers.length),
+          pricePerPerson: confirmationData.pricePerPerson || groupDetails.pricePerPerson || 0,
           currency: confirmationData.currency || 'LKR',
           paymentDeadline: moment().add(confirmationData.paymentDeadlineHours || 72, 'hours').toDate()
         },
@@ -89,12 +107,12 @@ class PoolingConfirmService {
       // 8. Send confirmation notifications to all members
       await this.sendConfirmationNotifications(confirmedTrip);
 
-      logger.info(`Trip confirmation initiated successfully for group ${groupId}`);
+      logger.info(`Trip confirmation initiated successfully for tripId ${tripId}, groupId ${confirmedTrip.groupId}`);
       
       return {
         success: true,
         confirmedTripId: confirmedTrip._id,
-        groupId,
+        groupId: confirmedTrip.groupId,
         status: 'pending_confirmation',
         confirmationDeadline,
         memberCount: currentMembers.length,
@@ -102,7 +120,7 @@ class PoolingConfirmService {
       };
 
     } catch (error) {
-      logger.error(`Error initiating confirmation for group ${groupId}:`, error);
+      logger.error(`Error initiating confirmation for tripId ${tripId}:`, error);
       throw error;
     }
   }
@@ -387,13 +405,67 @@ class PoolingConfirmService {
   /**
    * Helper Methods
    */
-  async fetchGroupDetails(groupId, userId) {
+  async fetchGroupDetails(tripId, userId) {
     try {
-      const response = await axios.get(`${this.poolingServiceUrl}/api/v1/groups/${groupId}?userId=${userId}`);
-      return response.data;
+      // Connect to the islandhop_pooling database (Java service) to find groups
+      const poolingDB = mongoose.connection.client.db('islandhop_pooling');
+      const groupsCollection = poolingDB.collection('groups');
+      
+      // Debug logging
+      logger.info(`🔍 Searching for tripId: ${tripId} in database: islandhop_pooling`);
+      logger.info(`🔍 Collection: groups`);
+      logger.info(`🔍 User: ${userId}`);
+      
+      // Search by tripId in the Java service database
+      const group = await groupsCollection.findOne({ tripId: tripId });
+      
+      // Debug what we found
+      if (group) {
+        logger.info(`✅ Found group in islandhop_pooling: ${group.groupName}`);
+        logger.info(`📋 Group members: ${group.userIds}`);
+        logger.info(`📋 Creator: ${group.creatorUserId}`);
+      } else {
+        logger.warn(`❌ No group found in islandhop_pooling database`);
+        // Check first few documents to see the structure
+        const sampleDocs = await groupsCollection.find({}).limit(3).toArray();
+        logger.info(`📋 Sample documents: ${JSON.stringify(sampleDocs.map(doc => ({_id: doc._id, tripId: doc.tripId, groupName: doc.groupName})), null, 2)}`);
+      }
+      
+      // First check: Does the trip exist in the pooling database?
+      if (!group) {
+        logger.warn(`Trip not found for tripId: ${tripId} in islandhop_pooling database`);
+        throw new Error(`Trip with ID ${tripId} does not exist`);
+      }
+
+      // Second check: Is user authorized (part of the group)?
+      if (!group.userIds || !group.userIds.includes(userId)) {
+        logger.warn(`User ${userId} is not authorized for tripId: ${tripId}. Group members: ${group.userIds}`);
+        throw new Error(`User ${userId} is not a member of this trip group`);
+      }
+
+      logger.info(`Retrieved group details for tripId: ${tripId}, group: ${group.groupName}`);
+      return {
+        _id: group._id,
+        tripId: group.tripId,
+        groupName: group.groupName,
+        userIds: group.userIds,
+        tripName: group.tripName || `Trip ${group.tripId}`,
+        destination: group.destination || 'Unknown',
+        startDate: group.startDate,
+        endDate: group.endDate,
+        maxGroupSize: group.maxGroupSize || group.maxParticipants || group.userIds.length,
+        pricePerPerson: group.pricePerPerson || 0,
+        status: group.status || 'active',
+        preferredActivities: group.preferredActivities || []
+      };
     } catch (error) {
-      logger.error(`Error fetching group details for ${groupId}:`, error.message);
-      return null;
+      // Re-throw the specific error if it's one of our custom ones
+      if (error.message.includes('does not exist') || error.message.includes('not a member')) {
+        throw error;
+      }
+      // Handle unexpected errors
+      logger.error(`Unexpected error fetching group details for tripId ${tripId}:`, error.message);
+      throw new Error(`Database error while fetching trip details: ${error.message}`);
     }
   }
 

@@ -23,13 +23,75 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-ID'],
-  credentials: true
-}));
+// CORS configuration - Enhanced for frontend compatibility
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Define allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',     // React default
+      'http://localhost:3001',     // React alternative
+      'http://localhost:8080',     // Vue.js default
+      'http://localhost:8081',     // Vue.js alternative
+      'http://localhost:4200',     // Angular default
+      'http://localhost:5173',     // Vite default
+      'http://localhost:5174',     // Vite alternative
+      'http://127.0.0.1:3000',     // Localhost variations
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:8080',
+      'http://127.0.0.1:5173',
+      process.env.FRONTEND_URL,    // Production frontend URL
+      process.env.CORS_ORIGIN      // Custom origin from env
+    ].filter(Boolean); // Remove undefined values
+    
+    // For development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // Check if origin is allowed
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization', 
+    'X-Requested-With',
+    'X-User-ID',
+    'Accept',
+    'Origin',
+    'Cache-Control',
+    'X-Forwarded-For'
+  ],
+  exposedHeaders: [
+    'X-Total-Count',
+    'X-Rate-Limit-Limit',
+    'X-Rate-Limit-Remaining',
+    'X-Rate-Limit-Reset'
+  ],
+  credentials: true,
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-User-ID, Accept, Origin, Cache-Control, X-Forwarded-For');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  res.status(200).end();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -55,6 +117,72 @@ app.get('/health', (req, res) => {
     service: 'pooling-confirm-service',
     version: process.env.npm_package_version || '1.0.0'
   });
+});
+
+// CORS test endpoint
+app.get('/api/v1/pooling-confirm/cors-test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'CORS is working correctly',
+    origin: req.headers.origin || 'No origin header',
+    timestamp: new Date().toISOString(),
+    headers: {
+      'access-control-allow-origin': res.getHeader('access-control-allow-origin'),
+      'access-control-allow-credentials': res.getHeader('access-control-allow-credentials')
+    }
+  });
+});
+
+// Debug endpoint to check available groups
+app.get('/api/v1/pooling-confirm/debug/groups', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    
+    // Check both databases
+    const poolingDB = mongoose.connection.client.db('islandhop_pooling');
+    const confirmDB = mongoose.connection.client.db('islandhop_pooling_confirm');
+    
+    const poolingGroups = poolingDB.collection('groups');
+    const confirmedTrips = confirmDB.collection('confirmed_trips');
+    
+    const groups = await poolingGroups.find({}).limit(5).toArray();
+    const confirmed = await confirmedTrips.find({}).limit(5).toArray();
+    
+    res.json({
+      success: true,
+      message: 'Database status check',
+      databases: {
+        pooling: {
+          database: 'islandhop_pooling',
+          collection: 'groups',
+          count: await poolingGroups.countDocuments(),
+          sample: groups.map(group => ({
+            _id: group._id,
+            tripId: group.tripId,
+            groupName: group.groupName,
+            userIds: group.userIds,
+            userCount: group.userIds?.length || 0
+          }))
+        },
+        confirmation: {
+          database: 'islandhop_pooling_confirm',
+          collection: 'confirmed_trips',
+          count: await confirmedTrips.countDocuments(),
+          sample: confirmed.map(trip => ({
+            _id: trip._id,
+            tripId: trip.tripId,
+            status: trip.status
+          }))
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching database info',
+      error: error.message
+    });
+  }
 });
 
 // API routes
@@ -84,12 +212,13 @@ app.get('/api/v1/pooling-confirm/docs', (req, res) => {
       'POST /api/v1/pooling-confirm/initiate': {
         description: 'Initiate trip confirmation process',
         body: {
-          groupId: 'string (required)',
+          tripId: 'string (required) - the actual trip ID',
+          groupId: 'string (required) - the group\'s _id from MongoDB',
           userId: 'string (required)',
           minMembers: 'number (optional, default: 2)',
           maxMembers: 'number (optional, default: 12)',
-          tripStartDate: 'string ISO date (required)',
-          tripEndDate: 'string ISO date (required)',
+          tripStartDate: 'string ISO date (optional)',
+          tripEndDate: 'string ISO date (optional)',
           confirmationHours: 'number (optional, default: 48)',
           totalAmount: 'number (optional, default: 0)',
           pricePerPerson: 'number (optional, default: 0)',
@@ -97,6 +226,11 @@ app.get('/api/v1/pooling-confirm/docs', (req, res) => {
           paymentDeadlineHours: 'number (optional, default: 72)',
           tripDetails: 'object (optional)'
         }
+      },
+      'GET /api/v1/pooling-confirm/trip/:tripId/status': {
+        description: 'Get confirmation status by tripId (helper endpoint)',
+        params: { tripId: 'string (UUID from pooling service)' },
+        query: { userId: 'string (required)' }
       },
       'POST /api/v1/pooling-confirm/:confirmedTripId/confirm': {
         description: 'Member confirms participation',
