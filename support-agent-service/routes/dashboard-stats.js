@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
 
         // Fetch dashboard statistics
         const totalComplaints = await db.collection('complaints').countDocuments();
-        const unresolvedComplaints = await db.collection('complaints').countDocuments({ status: "not_resolved" });
+        const unresolvedComplaints = await db.collection('complaints').countDocuments({ status: "not resolved" });
         const resolvedComplaints = totalComplaints - unresolvedComplaints;
         const lostItems = await db.collection('lost-items-log').countDocuments({ status: "not found" });
 
