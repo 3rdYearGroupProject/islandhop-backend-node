@@ -23,7 +23,11 @@ class PoolingConfirmController {
         totalAmount: Joi.number().min(0).optional(),
         pricePerPerson: Joi.number().min(0).optional(),
         currency: Joi.string().valid('LKR', 'USD', 'EUR').default('LKR'),
-        paymentDeadlineHours: Joi.number().min(1).max(336).default(72), // 1 hour to 2 weeks
+        
+        // Payment phase deadlines
+        upfrontPaymentHours: Joi.number().min(1).max(168).default(48), // Hours after confirmation for 50% payment
+        finalPaymentDaysBefore: Joi.number().min(1).max(30).default(7), // Days before trip for remaining 50%
+        
         tripDetails: Joi.object().default({})
       });
 

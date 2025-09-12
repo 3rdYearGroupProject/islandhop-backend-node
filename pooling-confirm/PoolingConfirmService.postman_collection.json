@@ -41,7 +41,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"groupId\": \"group123\",\n  \"userId\": \"user123\",\n  \"minMembers\": 3,\n  \"maxMembers\": 8,\n  \"tripStartDate\": \"2024-12-01T00:00:00.000Z\",\n  \"tripEndDate\": \"2024-12-05T00:00:00.000Z\",\n  \"confirmationHours\": 48,\n  \"totalAmount\": 40000,\n  \"pricePerPerson\": 10000,\n  \"currency\": \"LKR\",\n  \"paymentDeadlineHours\": 72,\n  \"tripDetails\": {\n    \"destinations\": [\"Kandy\", \"Nuwara Eliya\"],\n    \"activities\": [\"hiking\", \"sightseeing\"]\n  }\n}"
+          "raw": "{\n  \"groupId\": \"group123\",\n  \"userId\": \"user123\",\n  \"minMembers\": 3,\n  \"maxMembers\": 8,\n  \"tripStartDate\": \"2024-12-01T00:00:00.000Z\",\n  \"tripEndDate\": \"2024-12-05T00:00:00.000Z\",\n  \"confirmationHours\": 48,\n  \"totalAmount\": 40000,\n  \"pricePerPerson\": 10000,\n  \"currency\": \"LKR\",\n  \"upfrontPaymentHours\": 48,\n  \"finalPaymentDaysBefore\": 7,\n  \"tripDetails\": {\n    \"destinations\": [\"Kandy\", \"Nuwara Eliya\"],\n    \"activities\": [\"hiking\", \"sightseeing\"]\n  }\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/v1/pooling-confirm/initiate",

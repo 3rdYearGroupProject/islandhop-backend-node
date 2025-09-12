@@ -72,7 +72,7 @@ const startTrip = async (req, res, next) => {
       ...tripData,
       dailyPlans: enhancedDailyPlans,
       started: 1,
-      startconfirmed: 0,
+      startconfirmed: 1,
       ended: 0,
       endconfirmed: 0,
       driver_reviewed: 0,
@@ -768,6 +768,83 @@ const getCompletedTripByDriverEmail = async (req, res, next) => {
   }
 };
 
+// @desc    Get completed trip by guide email
+// @route   GET /api/trips/guide/:guideEmail
+// @access  Public
+const getCompletedTripByGuideEmail = async (req, res, next) => {
+  console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Function called');
+  console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Request params:', req.params);
+  
+  try {
+    const { guideEmail } = req.params;
+    console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Extracted guideEmail:', guideEmail);
+
+    if (!guideEmail) {
+      console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Error: Guide email is required');
+      return res.status(400).json({
+        success: false,
+        error: 'Guide email is required'
+      });
+    }
+
+    console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Finding completed trips by guide email');
+    const trips = await CompletedTrip.find({ guide_email: guideEmail });
+    console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Found trips count:', trips.length);
+
+    if (trips.length === 0) {
+      console.log('[GET_COMPLETED_TRIP_BY_GUIDE] No completed trips found for guide');
+      return res.status(404).json({
+        success: false,
+        error: 'No completed trips found for this guide'
+      });
+    }
+
+    console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Sending success response with trip data');
+    res.status(200).json({
+      success: true,
+      data: {
+        guideEmail: guideEmail,
+        trips: trips,
+        totalTrips: trips.length
+      }
+    });
+  } catch (error) {
+    console.log('[GET_COMPLETED_TRIP_BY_GUIDE] Error occurred:', error.message);
+    next(error);
+  }
+};
+
+// @desc    Get trip data by _id
+// @route   GET /api/trips/trip/:id
+// @access  Public
+const getTripById = async (req, res, next) => {
+  console.log('[GET_TRIP_BY_ID] Function called');
+  console.log('[GET_TRIP_BY_ID] Request params:', req.params);
+
+  try {
+    const { id } = req.params;
+    console.log('[GET_TRIP_BY_ID] Extracted id:', id);
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Trip ID is required' });
+    }
+
+    console.log('[GET_TRIP_BY_ID] Fetching trip by ID');
+    const trip = await CompletedTrip.findById(id);
+    console.log('[GET_TRIP_BY_ID] Trip found:', trip ? 'Yes' : 'No');
+
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found' });
+    }
+
+    console.log('[GET_TRIP_BY_ID] Sending success response');
+    res.status(200).json({ success: true, data: trip });
+  } catch (error) {
+    console.log('[GET_TRIP_BY_ID] Error occurred:', error.message);
+    next(error);
+  }
+};
+
 module.exports = {
   startTrip,
   confirmStart,
@@ -781,5 +858,7 @@ module.exports = {
   getTotalDistance,
   guideReview,
   driverReview,
-  getCompletedTripByDriverEmail
+  getCompletedTripByDriverEmail,
+  getCompletedTripByGuideEmail,
+  getTripById
 };
