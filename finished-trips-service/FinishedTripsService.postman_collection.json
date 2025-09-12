@@ -1,0 +1,171 @@
+{
+	"info": {
+		"_postman_id": "finished-trips-service-collection",
+		"name": "Finished Trips Service",
+		"description": "API collection for testing the Finished Trips microservice endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Process Payment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"_id\": \"YOUR_TRIP_ID_HERE\",\n  \"payedAmount\": 150.50\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/process-payment",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"process-payment"
+					]
+				},
+				"description": "Move trip from completed_trips to payed_finished_trips and update payed amount"
+			}
+		},
+		{
+			"name": "Add Driver Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"YOUR_TRIP_ID_HERE\",\n  \"review\": \"Great driver, very professional and punctual!\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/driver-review",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"driver-review"
+					]
+				},
+				"description": "Add a review for the driver on a finished trip"
+			}
+		},
+		{
+			"name": "Add Guide Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"tripId\": \"YOUR_TRIP_ID_HERE\",\n  \"review\": \"Excellent guide, very knowledgeable about the area!\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/guide-review",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"guide-review"
+					]
+				},
+				"description": "Add a review for the guide on a finished trip"
+			}
+		},
+		{
+			"name": "Get User Trips",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/user-trips/J0INIUkpCDNpUHCUkY0xmyPwoEe2",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"user-trips",
+						"J0INIUkpCDNpUHCUkY0xmyPwoEe2"
+					]
+				},
+				"description": "Retrieve all payed finished trips for a specific user"
+			}
+		},
+		{
+			"name": "Get All Payed Trips",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/payed-trips",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"payed-trips"
+					]
+				},
+				"description": "Retrieve all payed finished trips"
+			}
+		},
+		{
+			"name": "Get Specific Payed Trip",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/payed-trips/YOUR_TRIP_ID_HERE",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"payed-trips",
+						"YOUR_TRIP_ID_HERE"
+					]
+				},
+				"description": "Retrieve a specific payed finished trip by ID"
+			}
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check service health status"
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4015",
+			"type": "string"
+		}
+	]
+}
