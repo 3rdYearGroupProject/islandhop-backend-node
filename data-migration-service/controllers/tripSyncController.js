@@ -169,7 +169,7 @@ const getSyncStats = async (req, res) => {
     });
 
     const syncedTrips = driverInfo && driverInfo.trips && driverInfo.trips.history 
-      ? driverInfo.trips.history.filter(trip => trip.test paymentTripId).length
+      ? driverInfo.trips.history.filter(trip => trip.paymentTripId).length
       : 0;
 
     const stats = {
