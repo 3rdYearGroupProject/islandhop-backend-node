@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import touristRouter from './routes/touristRoutes.js';
 import lostItemsRouter from './routes/lostItemsRoutes.js';
+import panicAlertsRouter from './routes/panicAlerts.js';
 import {connectDatabases} from './db.js';
 
 dotenv.config();
@@ -36,6 +37,7 @@ async function initializeApp() {
     
     app.use('/tourist', touristRouter);
     app.use('/lost-items', lostItemsRouter);
+    app.use('/panic-alerts', panicAlertsRouter);
   } catch (error) {
     console.error('❌ Failed to initialize database connections:', error);
     process.exit(1);
@@ -54,7 +56,10 @@ app.get('/', (req, res) => {
       'GET /',
       'GET /lost-items/getLostItems',
       'PATCH /lost-items/updateProgressNotes/:id',
-      'POST /tourist/addLostItem'
+      'POST /tourist/addLostItem',
+      'POST /panic-alerts',
+      'GET /panic-alerts',
+      'PUT /panic-alerts/:id/status'
     ]
   });
 });
