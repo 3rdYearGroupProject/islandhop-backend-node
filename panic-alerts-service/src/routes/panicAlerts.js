@@ -9,7 +9,7 @@ const router = express.Router();
 // Function to fetch tourist details from Supabase DB
 async function fetchTouristDetails(emails) {
     const client = new Client({
-        connectionString: process.env.DATABASE_URL,
+        connectionString: process.env.NEON_DATABASE_URL,
         ssl: { 
             rejectUnauthorized: false
         }
