@@ -1,14 +1,17 @@
 # Logs API - Implementation Summary
 
 ## Overview
+
 Created a comprehensive logging API for the admin subservice that retrieves logs from the `payment-service` MongoDB database.
 
 ## What Was Implemented
 
 ### 1. Logs Controller (`controllers/logsController.js`)
+
 Created a new controller with the following features:
 
 #### Database Connection
+
 - Connects to `payment-service` MongoDB database
 - Manages two collections: `drivers` and `guides`
 - Uses flexible schema (`strict: false`) to handle varying log structures
@@ -17,6 +20,7 @@ Created a new controller with the following features:
 #### API Functions
 
 1. **`getAllLogs()`** - NEW! ⭐
+
    - Fetches logs from BOTH drivers and guides collections
    - Combines and sorts results
    - Supports pagination, search, and sorting
@@ -25,19 +29,23 @@ Created a new controller with the following features:
    - Each log includes `logType` field ("driver" or "guide")
 
 2. **`getDriverLogs()`**
+
    - Fetches all driver logs with pagination
    - Search by driverId, driverEmail, driverName, or status
    - Configurable sorting
 
 3. **`getGuideLogs()`**
+
    - Fetches all guide logs with pagination
    - Search by guideId, guideEmail, guideName, or status
    - Configurable sorting
 
 4. **`getDriverLogById()`**
+
    - Fetch specific driver log by MongoDB ObjectId
 
 5. **`getGuideLogById()`**
+
    - Fetch specific guide log by MongoDB ObjectId
 
 6. **`getLogsStats()`**
@@ -45,6 +53,7 @@ Created a new controller with the following features:
    - Total counts for drivers, guides, and combined
 
 ### 2. Routes Configuration (`routes/logs.js`)
+
 Created RESTful routes with admin authentication:
 
 ```
@@ -57,10 +66,12 @@ GET /api/admin/logs/guides/:id   - Get guide log by ID
 ```
 
 ### 3. App Integration (`app.js`)
+
 - Added logs routes to main app
 - Updated welcome endpoint to include logs API
 
 ### 4. Documentation
+
 - Created comprehensive API documentation (`LOGS_API_DOCUMENTATION.md`)
 - Includes all endpoints with examples
 - JavaScript fetch examples
@@ -70,27 +81,33 @@ GET /api/admin/logs/guides/:id   - Get guide log by ID
 ## Key Features
 
 ### Authentication & Security
+
 ✅ All endpoints require Firebase JWT authentication
 ✅ Admin role verification via Supabase `admin_accounts` table
 ✅ Token validation with proper error handling
 
 ### Pagination
+
 ✅ Page-based pagination (default: page 1, limit 10)
 ✅ Returns pagination metadata (totalPages, hasNextPage, etc.)
 ✅ Customizable page size
 
 ### Search & Filtering
+
 ✅ Case-insensitive regex search
 ✅ Search across multiple fields (email, name, ID, status)
 ✅ Type filtering (driver/guide) for combined endpoint
 
 ### Sorting
+
 ✅ Configurable sort field (default: createdAt)
 ✅ Ascending or descending order
 ✅ Works across combined collections
 
 ### Response Format
+
 All endpoints return consistent JSON structure:
+
 ```json
 {
   "success": true/false,
@@ -106,6 +123,7 @@ All endpoints return consistent JSON structure:
 ## Usage Examples
 
 ### Fetch All Logs (Combined)
+
 ```javascript
 const response = await fetch(
   `http://localhost:8070/api/admin/logs/all?page=1&limit=20`,
@@ -125,6 +143,7 @@ console.log("Guide Count:", data.data.breakdown.totalGuideLogs);
 ```
 
 ### Fetch Driver Logs Only
+
 ```javascript
 const response = await fetch(
   `http://localhost:8070/api/admin/logs/all?type=driver&page=1&limit=20`,
@@ -139,6 +158,7 @@ const response = await fetch(
 ```
 
 ### Search Across All Logs
+
 ```javascript
 const response = await fetch(
   `http://localhost:8070/api/admin/logs/all?search=john&page=1&limit=20`,
@@ -157,6 +177,7 @@ const response = await fetch(
 ### MongoDB Database: `payment-service`
 
 #### Collection: `drivers`
+
 ```javascript
 {
   "_id": ObjectId,
@@ -172,6 +193,7 @@ const response = await fetch(
 ```
 
 #### Collection: `guides`
+
 ```javascript
 {
   "_id": ObjectId,
