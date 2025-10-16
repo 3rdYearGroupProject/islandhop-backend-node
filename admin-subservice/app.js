@@ -11,6 +11,7 @@ const userRoutes = require("./routes/userRoutes");
 const roleRoutes = require("./routes/roleRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const logsRoutes = require("./routes/logs");
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use("/api/admin/users", userRoutes);
 app.use("/api/admin/roles", roleRoutes);
 app.use("/api/admin/dashboard", dashboardRoutes);
 app.use("/api/admin/analytics", analyticsRoutes);
+app.use("/api/admin/logs", logsRoutes);
 
 // Welcome route
 app.get("/", (req, res) => {
@@ -64,6 +66,7 @@ app.get("/", (req, res) => {
       roles: "/api/admin/roles",
       dashboard: "/api/admin/dashboard",
       analytics: "/api/admin/analytics",
+      logs: "/api/admin/logs",
       health: "/health",
     },
   });
