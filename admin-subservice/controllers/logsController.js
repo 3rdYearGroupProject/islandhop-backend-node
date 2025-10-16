@@ -272,6 +272,120 @@ const getGuideLogById = async (req, res) => {
 };
 
 /**
+ * Get all logs from both drivers and guides collections
+ * GET /api/logs/all
+ */
+const getAllLogs = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      search,
+      type, // Optional filter: 'driver' or 'guide'
+    } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const DriverLog = getDriverLogModel();
+    const GuideLog = getGuideLogModel();
+
+    // Build query filter for search
+    const driverFilter = {};
+    const guideFilter = {};
+
+    if (search) {
+      driverFilter.$or = [
+        { driverId: { $regex: search, $options: "i" } },
+        { driverEmail: { $regex: search, $options: "i" } },
+        { driverName: { $regex: search, $options: "i" } },
+        { status: { $regex: search, $options: "i" } },
+      ];
+
+      guideFilter.$or = [
+        { guideId: { $regex: search, $options: "i" } },
+        { guideEmail: { $regex: search, $options: "i" } },
+        { guideName: { $regex: search, $options: "i" } },
+        { status: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Fetch logs based on type filter
+    let driverLogs = [];
+    let guideLogs = [];
+
+    if (!type || type === "driver") {
+      driverLogs = await DriverLog.find(driverFilter).lean();
+      // Add logType field to identify the source
+      driverLogs = driverLogs.map((log) => ({ ...log, logType: "driver" }));
+    }
+
+    if (!type || type === "guide") {
+      guideLogs = await GuideLog.find(guideFilter).lean();
+      // Add logType field to identify the source
+      guideLogs = guideLogs.map((log) => ({ ...log, logType: "guide" }));
+    }
+
+    // Combine both arrays
+    let allLogs = [...driverLogs, ...guideLogs];
+
+    // Sort combined results
+    allLogs.sort((a, b) => {
+      const aValue = a[sortBy];
+      const bValue = b[sortBy];
+
+      if (sortOrder === "asc") {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
+    });
+
+    // Get total count before pagination
+    const totalCount = allLogs.length;
+
+    // Apply pagination
+    const paginatedLogs = allLogs.slice(skip, skip + parseInt(limit));
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / parseInt(limit));
+    const hasNextPage = parseInt(page) < totalPages;
+    const hasPrevPage = parseInt(page) > 1;
+
+    logger.info(
+      `Retrieved ${paginatedLogs.length} logs (${driverLogs.length} drivers, ${guideLogs.length} guides) from payment-service database`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "All logs retrieved successfully",
+      data: {
+        logs: paginatedLogs,
+        breakdown: {
+          totalDriverLogs: driverLogs.length,
+          totalGuideLogs: guideLogs.length,
+        },
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalCount,
+          limit: parseInt(limit),
+          hasNextPage,
+          hasPrevPage,
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching all logs:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve all logs",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Get logs statistics
  * GET /api/logs/stats
  */
@@ -313,5 +427,6 @@ module.exports = {
   getGuideLogs,
   getDriverLogById,
   getGuideLogById,
+  getAllLogs,
   getLogsStats,
 };

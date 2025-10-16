@@ -5,9 +5,18 @@ const {
   getGuideLogs,
   getDriverLogById,
   getGuideLogById,
+  getAllLogs,
   getLogsStats,
 } = require("../controllers/logsController");
 const { verifyAdminToken } = require("../middlewares/auth");
+
+/**
+ * @route   GET /api/logs/all
+ * @desc    Get all logs from both drivers and guides with pagination and search
+ * @access  Admin only
+ * @query   page, limit, sortBy, sortOrder, search, type
+ */
+router.get("/all", verifyAdminToken, getAllLogs);
 
 /**
  * @route   GET /api/logs/drivers

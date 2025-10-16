@@ -18,7 +18,84 @@ Authorization: Bearer YOUR_FIREBASE_JWT_TOKEN
 
 ## Endpoints
 
-### 1. Get All Driver Logs
+### 1. Get All Logs (Combined)
+Retrieve all logs from both drivers and guides collections combined with pagination, sorting, and search capabilities.
+
+**Endpoint:** `GET /all`
+
+**Query Parameters:**
+- `page` (optional, default: 1) - Page number for pagination
+- `limit` (optional, default: 10) - Number of records per page
+- `sortBy` (optional, default: "createdAt") - Field to sort by
+- `sortOrder` (optional, default: "desc") - Sort order ("asc" or "desc")
+- `search` (optional) - Search term to filter logs
+- `type` (optional) - Filter by log type: "driver" or "guide" (omit to get both)
+
+**Example Request:**
+```javascript
+const response = await fetch(
+  `http://localhost:8070/api/admin/logs/all?page=1&limit=20&sortBy=createdAt&sortOrder=desc`,
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+
+const data = await response.json();
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "All logs retrieved successfully",
+  "data": {
+    "logs": [
+      {
+        "_id": "507f1f77bcf86cd799439011",
+        "driverId": "driver123",
+        "driverEmail": "driver@example.com",
+        "driverName": "John Doe",
+        "status": "completed",
+        "amount": 150.00,
+        "logType": "driver",
+        "createdAt": "2025-10-15T10:30:00.000Z",
+        "updatedAt": "2025-10-15T11:00:00.000Z"
+      },
+      {
+        "_id": "507f1f77bcf86cd799439012",
+        "guideId": "guide456",
+        "guideEmail": "guide@example.com",
+        "guideName": "Jane Smith",
+        "status": "completed",
+        "amount": 200.00,
+        "logType": "guide",
+        "createdAt": "2025-10-15T10:25:00.000Z",
+        "updatedAt": "2025-10-15T11:00:00.000Z"
+      }
+    ],
+    "breakdown": {
+      "totalDriverLogs": 75,
+      "totalGuideLogs": 50
+    },
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 7,
+      "totalCount": 125,
+      "limit": 20,
+      "hasNextPage": true,
+      "hasPrevPage": false
+    }
+  }
+}
+```
+
+---
+
+### 2. Get All Driver Logs
 
 Retrieve all driver logs with pagination, sorting, and search capabilities.
 
@@ -82,7 +159,7 @@ const data = await response.json();
 
 ---
 
-### 2. Get All Guide Logs
+### 3. Get All Guide Logs
 
 Retrieve all guide logs with pagination, sorting, and search capabilities.
 
@@ -146,7 +223,7 @@ const data = await response.json();
 
 ---
 
-### 3. Get Driver Log by ID
+### 4. Get Driver Log by ID
 
 Retrieve a specific driver log by its MongoDB ObjectId.
 
@@ -195,7 +272,7 @@ const data = await response.json();
 
 ---
 
-### 4. Get Guide Log by ID
+### 5. Get Guide Log by ID
 
 Retrieve a specific guide log by its MongoDB ObjectId.
 
@@ -244,7 +321,7 @@ const data = await response.json();
 
 ---
 
-### 5. Get Logs Statistics
+### 6. Get Logs Statistics
 
 Retrieve overall statistics about driver and guide logs.
 
@@ -323,6 +400,69 @@ const data = await response.json();
 ---
 
 ## Usage Examples
+
+### Fetch All Logs (Combined from Both Collections)
+```javascript
+async function fetchAllLogs(page = 1, searchTerm = "", type = "") {
+  const token = localStorage.getItem("adminToken");
+  
+  const queryParams = new URLSearchParams({
+    page: page,
+    limit: 25,
+    sortBy: "createdAt",
+    sortOrder: "desc",
+  });
+  
+  if (searchTerm) {
+    queryParams.append("search", searchTerm);
+  }
+  
+  if (type) {
+    queryParams.append("type", type); // "driver" or "guide"
+  }
+  
+  try {
+    const response = await fetch(
+      `http://localhost:8070/api/admin/logs/all?${queryParams}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log("All Logs:", data.data.logs);
+      console.log("Breakdown:", data.data.breakdown);
+      console.log("Pagination:", data.data.pagination);
+      return data.data;
+    } else {
+      console.error("Error:", data.message);
+      return null;
+    }
+  } catch (error) {
+    console.error("Fetch error:", error);
+    return null;
+  }
+}
+
+// Usage examples:
+// Get all logs from both collections
+fetchAllLogs(1, "");
+
+// Get all logs with search
+fetchAllLogs(1, "john");
+
+// Get only driver logs
+fetchAllLogs(1, "", "driver");
+
+// Get only guide logs
+fetchAllLogs(1, "", "guide");
+```
 
 ### Fetch Paginated Driver Logs with Search
 
@@ -463,6 +603,27 @@ The controller automatically switches to the `payment-service` database and acce
 ## Testing with Postman
 
 Import the following curl commands into Postman:
+
+### Get All Logs (Combined)
+```bash
+curl -X GET "http://localhost:8070/api/admin/logs/all?page=1&limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+### Get All Logs with Type Filter (Drivers Only)
+```bash
+curl -X GET "http://localhost:8070/api/admin/logs/all?page=1&limit=20&type=driver" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+### Get All Logs with Search
+```bash
+curl -X GET "http://localhost:8070/api/admin/logs/all?page=1&limit=20&search=john" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
+```
 
 ### Get Driver Logs
 
