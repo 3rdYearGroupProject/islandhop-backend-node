@@ -8390,3 +8390,6 @@ pooling-confirm/node_modules/yocto-queue/index.js
 pooling-confirm/node_modules/yocto-queue/license
 pooling-confirm/node_modules/yocto-queue/package.json
 pooling-confirm/node_modules/yocto-queue/readme.md
+/route-service/node_modules
+verification-service/log.txt
+/verification-service/node_modules
