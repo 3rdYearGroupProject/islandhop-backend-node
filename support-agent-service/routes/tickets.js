@@ -114,10 +114,10 @@ router.post('/mark-resolved/:id', async (req, res) => {
 
 router.post('/add-complaint', async (req, res) => {
     console.log('Request body:', req.body);
-    
-    const { description, tripId, userId, email } = req.body;
-    
-    console.log('Extracted data:', { description, tripId, userId, email });
+
+    const { description, tripId, userId, email, complaintType } = req.body;
+
+    console.log('Extracted data:', { description, tripId, userId, email, complaintType });
 
     const userEmail = email; // Use email from the request body
 
@@ -197,6 +197,7 @@ router.post('/add-complaint', async (req, res) => {
         // Insert the new complaint into the lost-items database
         const result = await lostItemsDb.collection('complaints').insertOne({
             description: description,
+            type: complaintType,
             tourist: touristInfo || { message: 'Tourist details not found' },
             driver: driverInfo || { message: 'No Driver Assigned' },
             guide: guideInfo || { message: 'No Guide Assigned' },
