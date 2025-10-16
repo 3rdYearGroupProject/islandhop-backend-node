@@ -443,8 +443,7 @@ const newActivateTrip = async (req, res) => {
         
         // Prepare request data for guide assignment
         const guideRequestData = {
-          tripDays: tripDays,
-          vehicleType: trip.vehicleType || 'Unknown'
+          tripDays: tripDays
         };
         console.log('[NEW_ACTIVATE_TRIP] Guide request data:', guideRequestData);
         
