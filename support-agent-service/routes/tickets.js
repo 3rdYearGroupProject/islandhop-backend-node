@@ -121,6 +121,25 @@ router.post('/add-complaint', async (req, res) => {
 
     const userEmail = email; // Use email from the request body
 
+    // Determine priority based on complaint type
+    const determinePriority = (type) => {
+        // High priority complaints that require immediate attention
+        if (type === 'Driver_didnt_show_up') {
+            return 'high';
+        }
+        
+        // You can add more high priority types here if needed
+        // if (type === 'safety_security') {
+        //     return 'high';
+        // }
+        
+        // Default priority for all other complaint types
+        return 'medium';
+    };
+
+    const priority = determinePriority(complaintType);
+    console.log(`Complaint type: ${complaintType}, Priority set to: ${priority}`);
+
     try {
         console.log(`✅ POST /add-complaint route accessed - adding new complaint`);
 
@@ -198,6 +217,7 @@ router.post('/add-complaint', async (req, res) => {
         const result = await lostItemsDb.collection('complaints').insertOne({
             description: description,
             type: complaintType,
+            priority: priority,
             tourist: touristInfo || { message: 'Tourist details not found' },
             driver: driverInfo || { message: 'No Driver Assigned' },
             guide: guideInfo || { message: 'No Guide Assigned' },
