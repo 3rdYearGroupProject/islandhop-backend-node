@@ -85,42 +85,42 @@ class TripSyncService {
   async checkForNewPaidTrips() {
     try {
       if (this.isRunning) {
-        console.log('⏳ Previous check still running, skipping...');
+        console.log('⏳ Previous driver check still running, skipping...');
         return;
       }
 
       this.isRunning = true;
-      console.log(`🔍 Checking for new paid trips since ${this.lastCheckTime.toISOString()}`);
+      console.log(`🔍 Checking for all paid driver trips to sync`);
 
       const driversCollection = this.paymentServiceDB.collection('drivers');
       
-      // Find new paid trips since last check
-      const newPaidTrips = await driversCollection.find({
+      // Find ALL paid trips (no timestamp filter)
+      const allPaidTrips = await driversCollection.find({
         driverEmail: 'driver101@islandhop.lk',
-        paid: 1,
-        createdAt: { $gte: this.lastCheckTime }
+        paid: 1
       }).toArray();
 
-      console.log(`📊 Found ${newPaidTrips.length} new paid trips`);
+      console.log(`📊 Found ${allPaidTrips.length} total paid driver trips`);
 
-      if (newPaidTrips.length > 0) {
-        for (const trip of newPaidTrips) {
+      let syncedCount = 0;
+      if (allPaidTrips.length > 0) {
+        for (const trip of allPaidTrips) {
           // Skip if already processed
           if (this.processedTripIds.has(trip._id.toString())) {
-            console.log(`⏭️ Skipping already processed trip: ${trip.tripId}`);
+            console.log(`⏭️ Skipping already processed driver trip: ${trip.tripId}`);
             continue;
           }
 
           await this.copyTripToHistory(trip);
           this.processedTripIds.add(trip._id.toString());
+          syncedCount++;
         }
       }
 
-      // Update last check time
-      this.lastCheckTime = new Date();
+      console.log(`✅ Synced ${syncedCount} new driver trips`);
 
     } catch (error) {
-      console.error('❌ Error checking for new trips:', error);
+      console.error('❌ Error checking for new driver trips:', error);
     } finally {
       this.isRunning = false;
     }
@@ -128,7 +128,7 @@ class TripSyncService {
 
   async copyTripToHistory(paymentTrip) {
     try {
-      console.log(`📝 Copying trip ${paymentTrip.tripId} to Driver_info history`);
+      console.log(`📝 Copying driver trip ${paymentTrip.tripId} to Driver_info history`);
 
       const driverInfoCollection = this.driversDB.collection('Driver_info');
 
@@ -149,7 +149,7 @@ class TripSyncService {
       );
 
       if (result.modifiedCount > 0) {
-        console.log(`✅ Successfully added trip ${paymentTrip.tripId} to history`);
+        console.log(`✅ Successfully added driver trip ${paymentTrip.tripId} to history`);
         
         // Update stats
         await this.updateDriverStats();
@@ -161,7 +161,7 @@ class TripSyncService {
       }
 
     } catch (error) {
-      console.error(`❌ Error copying trip ${paymentTrip.tripId}:`, error);
+      console.error(`❌ Error copying driver trip ${paymentTrip.tripId}:`, error);
       return false;
     }
   }
@@ -212,7 +212,8 @@ class TripSyncService {
   }
 
   startMonitoring() {
-    console.log('🚀 Starting trip sync monitoring (every 5 seconds)');
+    console.log('🚀 Starting driver trip sync monitoring (every 5 seconds)');
+    console.log('📝 Note: Syncs ALL paid trips, not just new ones');
     
     // Schedule task to run every 5 seconds
     cron.schedule('*/5 * * * * *', async () => {
@@ -224,11 +225,11 @@ class TripSyncService {
       await this.checkForNewPaidTrips();
     }, 1000);
 
-    console.log('⏰ Trip sync service is now running...');
+    console.log('⏰ Driver trip sync service is now running...');
   }
 
   stopMonitoring() {
-    console.log('🛑 Stopping trip sync monitoring');
+    console.log('🛑 Stopping driver trip sync monitoring');
     // Cron jobs will be automatically stopped when process exits
   }
 
@@ -266,13 +267,80 @@ class TripSyncService {
   }
 
   async manualSync() {
-    console.log('🔄 Running manual sync...');
+    console.log('🔄 Running manual driver sync...');
     await this.checkForNewPaidTrips();
     return {
       success: true,
-      message: 'Manual sync completed',
+      message: 'Manual driver sync completed',
       timestamp: new Date()
     };
+  }
+
+  async getTotalDriverPayments() {
+    try {
+      const driversCollection = this.paymentServiceDB.collection('drivers');
+      
+      // Get all driver payments for driver101@islandhop.lk
+      const allPayments = await driversCollection.find({
+        driverEmail: 'driver101@islandhop.lk'
+      }).toArray();
+
+      const paidPayments = allPayments.filter(payment => payment.paid === 1);
+      const unpaidPayments = allPayments.filter(payment => payment.paid === 0);
+      
+      const totalPaidAmount = paidPayments.reduce((sum, payment) => sum + payment.cost, 0);
+      const totalUnpaidAmount = unpaidPayments.reduce((sum, payment) => sum + payment.cost, 0);
+
+      return {
+        totalPayments: allPayments.length,
+        paidPayments: paidPayments.length,
+        unpaidPayments: unpaidPayments.length,
+        totalPaidAmount: totalPaidAmount,
+        totalUnpaidAmount: totalUnpaidAmount,
+        payments: allPayments
+      };
+    } catch (error) {
+      console.error('❌ Error getting driver payments:', error);
+      return null;
+    }
+  }
+
+  async getDriverInfoSyncedTrips() {
+    try {
+      const driverInfoCollection = this.driversDB.collection('Driver_info');
+      
+      // Get driver info document
+      const driverInfo = await driverInfoCollection.findOne({
+        email: 'driver101@islandhop.lk'
+      });
+
+      if (!driverInfo) {
+        return {
+          found: false,
+          message: 'Driver info document not found'
+        };
+      }
+
+      const syncedTrips = driverInfo.trips && driverInfo.trips.history 
+        ? driverInfo.trips.history.filter(trip => trip.paymentTripId)
+        : [];
+
+      const totalEarnings = syncedTrips.reduce((sum, trip) => sum + (trip.fare || 0), 0);
+
+      return {
+        found: true,
+        totalSyncedTrips: syncedTrips.length,
+        totalEarnings: totalEarnings,
+        syncedTrips: syncedTrips,
+        driverStats: driverInfo.stats || null
+      };
+    } catch (error) {
+      console.error('❌ Error getting Driver_info synced trips:', error);
+      return {
+        found: false,
+        error: error.message
+      };
+    }
   }
 }
 

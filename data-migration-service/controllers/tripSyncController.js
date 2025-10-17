@@ -91,14 +91,15 @@ const stopMonitoring = async (req, res) => {
 const getStatus = async (req, res) => {
   try {
     const status = await tripSyncService.getStatus();
+    const payments = await tripSyncService.getTotalDriverPayments();
     
     res.json({
       success: true,
-      data: {
-        ...status,
-        serviceInitialized: isServiceInitialized,
-        description: 'Monitors payment-service/drivers collection for new paid trips and syncs to Driver_info/trips.history'
-      }
+      driverSyncStatus: status,
+      driverPaymentsSummary: payments,
+      serviceInitialized: isServiceInitialized,
+      description: 'Monitors payment-service/drivers collection for new paid trips and syncs to Driver_info/trips.history',
+      message: 'Driver sync service status retrieved successfully'
     });
   } catch (error) {
     console.error('❌ Get status error:', error);
@@ -208,11 +209,74 @@ const getSyncStats = async (req, res) => {
   }
 };
 
+// Get all driver payments (similar to guide payments)
+const getAllDriverPayments = async (req, res) => {
+  try {
+    if (!isServiceInitialized) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service not initialized. Call /initialize first.'
+      });
+    }
+
+    const payments = await tripSyncService.getTotalDriverPayments();
+    
+    if (payments) {
+      res.json({
+        success: true,
+        data: payments,
+        message: 'Driver payments retrieved successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve driver payments'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Get driver payments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get driver payments',
+      error: error.message
+    });
+  }
+};
+
+// Verify driver sync results
+const verifyDriverSyncResults = async (req, res) => {
+  try {
+    if (!isServiceInitialized) {
+      return res.status(400).json({
+        success: false,
+        message: 'Service not initialized. Call /initialize first.'
+      });
+    }
+
+    const syncedData = await tripSyncService.getDriverInfoSyncedTrips();
+    
+    res.json({
+      success: true,
+      data: syncedData,
+      message: 'Driver sync verification completed'
+    });
+  } catch (error) {
+    console.error('❌ Verify driver sync error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify driver sync',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   initializeService,
   startMonitoring,
   stopMonitoring,
   getStatus,
   manualSync,
-  getSyncStats
+  getSyncStats,
+  getAllDriverPayments,
+  verifyDriverSyncResults
 };
