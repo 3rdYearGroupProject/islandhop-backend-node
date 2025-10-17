@@ -80,6 +80,8 @@ app.post('/api/trip-sync/stop', tripSyncController.stopMonitoring);
 app.get('/api/trip-sync/status', tripSyncController.getStatus);
 app.post('/api/trip-sync/sync-now', tripSyncController.manualSync);
 app.get('/api/trip-sync/stats', tripSyncController.getSyncStats);
+app.get('/api/trip-sync/payments', tripSyncController.getAllDriverPayments);
+app.get('/api/trip-sync/verify', tripSyncController.verifyDriverSyncResults);
 
 // Guide sync service routes
 app.post('/api/guide-sync/initialize', guideSyncController.initializeGuideSync);
@@ -138,6 +140,33 @@ app.listen(PORT, async () => {
     }
   } catch (error) {
     console.error('❌ Failed to initialize Guide Sync Service:', error.message);
+    console.log('📝 Service endpoints are still available for manual initialization');
+  }
+
+  // Auto-initialize trip sync service
+  console.log('🚀 Auto-initializing Trip Sync Service...');
+  try {
+    // Call the controller method using a mock request/response
+    let tripInitialized = false;
+    const mockReq = {};
+    const mockRes = {
+      json: (data) => { tripInitialized = data.success; },
+      status: () => mockRes
+    };
+    
+    await tripSyncController.initializeService(mockReq, mockRes);
+    
+    if (tripInitialized) {
+      console.log('✅ Trip Sync Service initialized');
+      // Auto-start monitoring
+      await tripSyncController.startMonitoring(mockReq, mockRes);
+      console.log('✅ Trip Sync Service monitoring started');
+    } else {
+      console.log('⚠️ Trip Sync Service failed to initialize (likely network/DB issues)');
+      console.log('📝 Service endpoints are still available for manual initialization');
+    }
+  } catch (error) {
+    console.error('❌ Failed to initialize Trip Sync Service:', error.message);
     console.log('📝 Service endpoints are still available for manual initialization');
   }
 });
