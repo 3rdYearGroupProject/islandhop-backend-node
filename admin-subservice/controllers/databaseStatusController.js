@@ -204,7 +204,7 @@ const checkSupabaseStatus = async () => {
 
     // Attempt to query a table to verify connection
     const { data, error } = await supabaseAdmin
-      .from("users")
+      .from("admin_accounts")
       .select("id")
       .limit(1);
 
