@@ -144,3 +144,6 @@
 [2025-10-18T04:27:18.704Z] Incoming request: GET /health
 [2025-10-18T04:29:43.612Z] Incoming request: GET /health
 [2025-10-18T04:30:48.348Z] Incoming request: GET /health
+[2025-10-18T12:14:40.691Z] Verification service started.
+[2025-10-18T12:14:50.679Z] Verification service started.
+[2025-10-18T12:18:04.825Z] Verification service started.
