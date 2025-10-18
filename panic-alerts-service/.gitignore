@@ -32,3 +32,4 @@ coverage/
 
 # Postman
 *.postman_collection.json
+".env" 
