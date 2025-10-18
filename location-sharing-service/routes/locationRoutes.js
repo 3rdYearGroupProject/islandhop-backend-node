@@ -47,4 +47,15 @@ router.post('/share-location', locationController.shareLocation);
  */
 router.get('/users-at-location', locationController.getUsersAtLocation);
 
+/**
+ * @route GET /check-location-shared
+ * @desc Check if a user has already shared a location for a trip on a given day
+ * @query tripId: String (required)
+ * @query userId: String (required)
+ * @query date: String (optional, format YYYY-MM-DD, defaults to today)
+ * @returns { shared: true|false, data: location|null }
+ * @example GET {BASE_URL}/check-location-shared?tripId=...&userId=...&date=YYYY-MM-DD
+ */
+router.get('/check-location-shared', locationController.checkLocationShared);
+
 module.exports = router;

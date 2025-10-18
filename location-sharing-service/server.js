@@ -4,12 +4,15 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const locationRoutes = require('./routes/locationRoutes');
 
 const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 
+// Enable CORS for all origins (adjust in production)
+app.use(cors());
 
 app.use(bodyParser.json());
 
