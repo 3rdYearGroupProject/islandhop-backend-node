@@ -4,39 +4,108 @@ const pkg = require('pg');
 const { Client } = pkg;
 const router = express.Router();
 
+// router.get('/complaints', async (req, res) => {
+//     try {
+//         console.log('✅ GET /complaints route accessed - fetching unresolved complaints');
+        
+//         // Get MongoDB connection to lost-items database for complaints
+//         const lostItemsDb = mongoose.connection.db;
+        
+//         // Fetch complaints where status is "not_resolved"
+//         const unresolvedComplaints = await lostItemsDb.collection('complaints').find({ 
+//             status: "not resolved" 
+//         }).toArray();
+
+//         console.log(`Found ${unresolvedComplaints.length} unresolved complaints`);
+
+//         // Return the results
+//         const response = {
+//             success: true,
+//             message: `Found ${unresolvedComplaints.length} unresolved complaints`,
+//             count: unresolvedComplaints.length,
+//             data: unresolvedComplaints
+//         };
+
+//         res.json(response);
+
+//     } catch (error) {
+//         console.error('Error fetching unresolved complaints:', error);
+//         res.status(500).json({ 
+//             success: false,
+//             error: 'Internal server error',
+//             message: 'Failed to fetch complaints'
+//         });
+//     }
+// });
+
+
 router.get('/complaints', async (req, res) => {
     try {
-        console.log('✅ GET /complaints route accessed - fetching unresolved complaints');
-        
-        // Get MongoDB connection to lost-items database for complaints
+        console.log('✅ Fetching unresolved complaints from lost-items and matching trip data from islandhop_trips');
+
+        // Get MongoDB connection to 'lost-items' database for complaints
         const lostItemsDb = mongoose.connection.db;
         
-        // Fetch complaints where status is "not_resolved"
-        const unresolvedComplaints = await lostItemsDb.collection('complaints').find({ 
-            status: "not resolved" 
-        }).toArray();
+        // Get MongoDB connection to 'islandhop_trips' database for trip data
+        const tripsDb = mongoose.connection.client.db("islandhop_trips");
 
-        console.log(`Found ${unresolvedComplaints.length} unresolved complaints`);
+        // Step 1: Fetch unresolved complaints
+        const complaints = await lostItemsDb.collection('complaints')
+            .find({ status: "not resolved" })
+            .toArray();
 
-        // Return the results
-        const response = {
+        console.log(`Fetched complaints found: ${complaints.length}`);
+
+        if (!complaints.length) {
+            return res.json({
+                success: true,
+                count: 0,
+                data: [],
+                message: 'No unresolved complaints found'
+            });
+        }
+
+        // Step 2: Extract trip IDs (they are stored as strings, not ObjectIds)
+        const tripIds = complaints
+            .filter(c => c.tripId && c.tripId.trim() !== '')
+            .map(c => c.tripId);
+
+        console.log(`Fetched trip IDs found: ${tripIds.length}`);
+
+        // Step 3: Fetch trip details from correct collection using originalTripId
+        const trips = await tripsDb.collection('payed_finished_trips')
+            .find({ originalTripId: { $in: tripIds } })
+            .toArray();
+
+        console.log(`Fetched trips found: ${trips.length}`);
+
+        // Step 4: Merge complaint + trip data
+        const merged = complaints.map(complaint => {
+            const trip = trips.find(t => t.originalTripId === complaint.tripId);
+            return {
+                ...complaint,
+                trip_details: trip || null
+            };
+        });
+
+        // Step 5: Respond with merged data
+        res.json({
             success: true,
-            message: `Found ${unresolvedComplaints.length} unresolved complaints`,
-            count: unresolvedComplaints.length,
-            data: unresolvedComplaints
-        };
-
-        res.json(response);
+            count: merged.length,
+            data: merged,
+            message: `Found ${merged.length} unresolved complaints`
+        });
 
     } catch (error) {
-        console.error('Error fetching unresolved complaints:', error);
-        res.status(500).json({ 
+        console.error('❌ Error fetching unresolved complaints:', error);
+        res.status(500).json({
             success: false,
-            error: 'Internal server error',
-            message: 'Failed to fetch complaints'
+            message: 'Internal server error',
+            error: error.message
         });
     }
 });
+
 
 // Route to get all complaints (optional)
 router.get('/complaints/all', async (req, res) => {
@@ -114,12 +183,31 @@ router.post('/mark-resolved/:id', async (req, res) => {
 
 router.post('/add-complaint', async (req, res) => {
     console.log('Request body:', req.body);
-    
-    const { description, tripId, userId, email } = req.body;
-    
-    console.log('Extracted data:', { description, tripId, userId, email });
+
+    const { description, tripId, userId, email, complaintType } = req.body;
+
+    console.log('Extracted data:', { description, tripId, userId, email, complaintType });
 
     const userEmail = email; // Use email from the request body
+
+    // Determine priority based on complaint type
+    const determinePriority = (type) => {
+        // High priority complaints that require immediate attention
+        if (type === 'Driver_didnt_show_up') {
+            return 'high';
+        }
+        
+        // You can add more high priority types here if needed
+        // if (type === 'safety_security') {
+        //     return 'high';
+        // }
+        
+        // Default priority for all other complaint types
+        return 'medium';
+    };
+
+    const priority = determinePriority(complaintType);
+    console.log(`Complaint type: ${complaintType}, Priority set to: ${priority}`);
 
     try {
         console.log(`✅ POST /add-complaint route accessed - adding new complaint`);
@@ -197,6 +285,9 @@ router.post('/add-complaint', async (req, res) => {
         // Insert the new complaint into the lost-items database
         const result = await lostItemsDb.collection('complaints').insertOne({
             description: description,
+            type: complaintType,
+            priority: priority,
+            tripId: tripId,
             tourist: touristInfo || { message: 'Tourist details not found' },
             driver: driverInfo || { message: 'No Driver Assigned' },
             guide: guideInfo || { message: 'No Guide Assigned' },
@@ -218,6 +309,40 @@ router.post('/add-complaint', async (req, res) => {
             success: false,
             error: 'Internal server error',
             message: 'Failed to add new complaint'
+        });
+    }
+});
+
+router.get('/3rd-party-drivers', async (req, res) => {
+    try {
+        console.log('✅ GET /3rd-party-drivers route accessed - fetching all third party drivers');
+
+        // Get MongoDB connection to 'For_Drivers' database
+        const forDriversDb = mongoose.connection.client.db("For_Drivers");
+        
+        // Fetch all third party drivers from third_party_drivers collection
+        const thirdPartyDrivers = await forDriversDb.collection('third_party_drivers')
+            .find({})
+            .sort({ createdAt: -1 }) // Sort by most recent first
+            .toArray();
+
+        console.log(`Found ${thirdPartyDrivers.length} third party drivers`);
+
+        // Return the results
+        res.json({
+            success: true,
+            message: `Found ${thirdPartyDrivers.length} third party drivers`,
+            count: thirdPartyDrivers.length,
+            data: thirdPartyDrivers
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching third party drivers:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error',
+            message: 'Failed to fetch third party drivers',
+            details: error.message
         });
     }
 });
