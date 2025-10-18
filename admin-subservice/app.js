@@ -12,6 +12,8 @@ const roleRoutes = require("./routes/roleRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const logsRoutes = require("./routes/logs");
+const thirdPartyDriverRoutes = require("./routes/thirdPartyDriverRoutes");
+
 
 const app = express();
 
@@ -53,6 +55,9 @@ app.use("/api/admin/roles", roleRoutes);
 app.use("/api/admin/dashboard", dashboardRoutes);
 app.use("/api/admin/analytics", analyticsRoutes);
 app.use("/api/admin/logs", logsRoutes);
+app.use("/api/admin/thirdparty", thirdPartyDriverRoutes);
+
+
 
 // Welcome route
 app.get("/", (req, res) => {
