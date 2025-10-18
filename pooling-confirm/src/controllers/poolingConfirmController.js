@@ -23,11 +23,7 @@ class PoolingConfirmController {
         totalAmount: Joi.number().min(0).optional(),
         pricePerPerson: Joi.number().min(0).optional(),
         currency: Joi.string().valid('LKR', 'USD', 'EUR').default('LKR'),
-        
-        // Payment phase deadlines
-        upfrontPaymentHours: Joi.number().min(1).max(168).default(48), // Hours after confirmation for 50% payment
-        finalPaymentDaysBefore: Joi.number().min(1).max(30).default(7), // Days before trip for remaining 50%
-        
+        paymentDeadlineHours: Joi.number().min(1).max(336).default(72), // 1 hour to 2 weeks (for backward compatibility)
         tripDetails: Joi.object().default({})
       });
 
@@ -376,6 +372,9 @@ class PoolingConfirmController {
       const { userId } = req.params;
       const { status, page = 1, limit = 10 } = req.query;
 
+      logger.info(`🔍 Getting confirmed trips for user: ${userId}`);
+      logger.info(`📋 Query params - status: ${status}, page: ${page}, limit: ${limit}`);
+
       if (!userId) {
         return res.status(400).json({
           success: false,
@@ -385,13 +384,25 @@ class PoolingConfirmController {
 
       // Build query
       const query = { memberIds: userId };
+      
+      // Handle comma-separated status values (e.g., "payment_pending,confirmed,completed")
       if (status) {
-        query.status = status;
+        const statusArray = status.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        logger.info(`📋 Status array: ${JSON.stringify(statusArray)}`);
+        
+        if (statusArray.length === 1) {
+          query.status = statusArray[0];
+        } else if (statusArray.length > 1) {
+          query.status = { $in: statusArray };
+        }
       }
+
+      logger.info(`📋 Final query: ${JSON.stringify(query)}`);
 
       // Pagination
       const skip = (parseInt(page) - 1) * parseInt(limit);
       
+
       const ConfirmedTrip = require('../models/ConfirmedTrip');
       const trips = await ConfirmedTrip.find(query)
         .sort({ createdAt: -1 })
@@ -400,77 +411,111 @@ class PoolingConfirmController {
 
       const total = await ConfirmedTrip.countDocuments(query);
 
+      logger.info(`📋 Found ${trips.length} trips out of ${total} total for user ${userId}`);
+
+      // MongoDB Atlas connection for initiated_trips
+      const mongoose = require('mongoose');
+      const initiatedConn = await mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_trips?retryWrites=true&w=majority', {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+      const initiatedTripSchema = new mongoose.Schema({
+        _id: String
+      }, { strict: false, collection: 'initiated_trips' });
+      const InitiatedTrip = initiatedConn.model('InitiatedTrip', initiatedTripSchema);
+
+      // Fetch initiated trip data for each confirmed trip
+      const tripsWithInitiatedData = await Promise.all(trips.map(async trip => {
+        let initiatedTrip = null;
+        try {
+          // Try to find by _id as string
+          initiatedTrip = await InitiatedTrip.findOne({ _id: trip.tripId }).lean();
+          // If not found, try by tripId field
+          if (!initiatedTrip) {
+            initiatedTrip = await InitiatedTrip.findOne({ tripId: trip.tripId }).lean();
+          }
+        } catch (e) {
+          logger.warn(`Could not fetch initiated trip for tripId ${trip.tripId}: ${e.message}`);
+        }
+        const userConfirmation = trip.memberConfirmations.find(mc => mc.userId === userId);
+        return {
+          // Basic Trip Information
+          _id: trip._id,
+          confirmedTripId: trip._id, // For backward compatibility
+          groupId: trip.groupId,
+          tripId: trip.tripId,
+          tripName: trip.tripName,
+          groupName: trip.groupName,
+
+          // User and Member Information
+          creatorUserId: trip.creatorUserId,
+          memberIds: trip.memberIds,
+          currentMemberCount: trip.currentMemberCount,
+          minMembers: trip.minMembers,
+          maxMembers: trip.maxMembers,
+
+          // Trip Status and Dates
+          status: trip.status,
+          tripStartDate: trip.tripStartDate,
+          tripEndDate: trip.tripEndDate,
+          confirmationDeadline: trip.confirmationDeadline,
+          confirmedAt: trip.confirmedAt,
+          confirmedBy: trip.confirmedBy,
+
+          // Trip Details and Preferences
+          preferences: trip.preferences,
+          tripDetails: trip.tripDetails,
+
+          // Payment Information
+          paymentInfo: {
+            totalAmount: trip.paymentInfo.totalAmount,
+            currency: trip.paymentInfo.currency,
+            pricePerPerson: trip.paymentInfo.pricePerPerson,
+            paymentDeadline: trip.paymentInfo.paymentDeadline,
+            memberPayments: trip.paymentInfo.memberPayments
+          },
+
+          // Member Confirmations
+          memberConfirmations: trip.memberConfirmations,
+
+          // Cancellation Information
+          cancellationInfo: trip.cancellationInfo,
+
+          // Notifications and Actions History
+          notificationsSent: trip.notificationsSent,
+          actions: trip.actions,
+
+          // Timestamps
+          createdAt: trip.createdAt,
+          updatedAt: trip.updatedAt,
+
+          // User-specific information
+          userConfirmed: userConfirmation?.confirmed || false,
+          userConfirmedAt: userConfirmation?.confirmedAt,
+          userPaymentStatus: userConfirmation?.paymentStatus,
+          isCreator: trip.creatorUserId === userId,
+          userPayment: trip.paymentInfo.memberPayments.find(mp => mp.userId === userId),
+
+          // Legacy fields for backward compatibility
+          memberCount: trip.currentMemberCount,
+          paymentRequired: trip.paymentInfo.pricePerPerson > 0,
+          pricePerPerson: trip.paymentInfo.pricePerPerson,
+
+          // Initiated trip fields for frontend
+          vehicleType: initiatedTrip?.vehicleType || null,
+          driverNeeded: initiatedTrip?.driverNeeded ?? null,
+          guideNeeded: initiatedTrip?.guideNeeded ?? null,
+          initiatedTripCreatorUserId: initiatedTrip?.userId || null
+        };
+      }));
+
+      // Close the initiated trip connection
+      await initiatedConn.close();
+
       res.status(200).json({
         success: true,
         data: {
-          trips: trips.map(trip => {
-            // Get user-specific confirmation
-            const userConfirmation = trip.memberConfirmations.find(mc => mc.userId === userId);
-            
-            return {
-              // Basic Trip Information
-              _id: trip._id,
-              confirmedTripId: trip._id, // For backward compatibility
-              groupId: trip.groupId,
-              tripId: trip.tripId,
-              tripName: trip.tripName,
-              groupName: trip.groupName,
-              
-              // User and Member Information
-              creatorUserId: trip.creatorUserId,
-              memberIds: trip.memberIds,
-              currentMemberCount: trip.currentMemberCount,
-              minMembers: trip.minMembers,
-              maxMembers: trip.maxMembers,
-              
-              // Trip Status and Dates
-              status: trip.status,
-              tripStartDate: trip.tripStartDate,
-              tripEndDate: trip.tripEndDate,
-              confirmationDeadline: trip.confirmationDeadline,
-              confirmedAt: trip.confirmedAt,
-              confirmedBy: trip.confirmedBy,
-              
-              // Trip Details and Preferences
-              preferences: trip.preferences,
-              tripDetails: trip.tripDetails,
-              
-              // Payment Information
-              paymentInfo: {
-                totalAmount: trip.paymentInfo.totalAmount,
-                currency: trip.paymentInfo.currency,
-                pricePerPerson: trip.paymentInfo.pricePerPerson,
-                paymentDeadline: trip.paymentInfo.paymentDeadline,
-                memberPayments: trip.paymentInfo.memberPayments
-              },
-              
-              // Member Confirmations
-              memberConfirmations: trip.memberConfirmations,
-              
-              // Cancellation Information
-              cancellationInfo: trip.cancellationInfo,
-              
-              // Notifications and Actions History
-              notificationsSent: trip.notificationsSent,
-              actions: trip.actions,
-              
-              // Timestamps
-              createdAt: trip.createdAt,
-              updatedAt: trip.updatedAt,
-              
-              // User-specific information
-              userConfirmed: userConfirmation?.confirmed || false,
-              userConfirmedAt: userConfirmation?.confirmedAt,
-              userPaymentStatus: userConfirmation?.paymentStatus,
-              isCreator: trip.creatorUserId === userId,
-              userPayment: trip.paymentInfo.memberPayments.find(mp => mp.userId === userId),
-              
-              // Legacy fields for backward compatibility
-              memberCount: trip.currentMemberCount,
-              paymentRequired: trip.paymentInfo.pricePerPerson > 0,
-              pricePerPerson: trip.paymentInfo.pricePerPerson
-            };
-          }),
+          trips: tripsWithInitiatedData,
           pagination: {
             currentPage: parseInt(page),
             totalPages: Math.ceil(total / parseInt(limit)),

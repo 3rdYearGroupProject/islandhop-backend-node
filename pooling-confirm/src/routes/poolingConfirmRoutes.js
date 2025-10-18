@@ -93,10 +93,10 @@ router.get('/debug/trip/:tripId', poolingConfirmController.debugTripDetails);
 
 /**
  * @route   POST /api/v1/pooling-confirm/:tripId/complete-payment
- * @desc    Complete payment for a user in a specific trip
+ * @desc    Complete upfront payment (50%) for a user in a specific trip
  * @access  Private (Payment system or admin)
- * @params  tripId: string (UUID from pooling service)
- * @body    { userId: string }
+ * @params  tripId: string (UUID from pooling service OR MongoDB ObjectId of confirmedTripId)
+ * @body    { userId: string, orderId?: string }
  */
 router.post('/:tripId/complete-payment', poolingConfirmController.completePayment);
 
