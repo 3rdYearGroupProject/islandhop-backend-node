@@ -90,19 +90,19 @@ class GuideSyncService {
       }
 
       this.isRunning = true;
-      console.log(`🔍 Checking for new paid guide tours since ${this.lastCheckTime.toISOString()}`);
+      console.log(`🔍 Checking for all paid guide tours to sync`);
 
       const guidesCollection = this.paymentServiceDB.collection('guides');
       
-      // Find new paid tours since last check
+      // Find ALL paid tours (no timestamp filtering)
       const newPaidTours = await guidesCollection.find({
         guideEmail: 'guide101@islandhop.lk',
-        paid: 1,
-        createdAt: { $gte: this.lastCheckTime }
+        paid: 1
       }).toArray();
 
-      console.log(`📊 Found ${newPaidTours.length} new paid guide tours`);
+      console.log(`📊 Found ${newPaidTours.length} total paid guide tours`);
 
+      let syncedCount = 0;
       if (newPaidTours.length > 0) {
         for (const tour of newPaidTours) {
           // Skip if already processed
@@ -113,8 +113,11 @@ class GuideSyncService {
 
           await this.copyTourToHistory(tour);
           this.processedTripIds.add(tour._id.toString());
+          syncedCount++;
         }
       }
+
+      console.log(`✅ Synced ${syncedCount} new guide tours`);
 
       // Update last check time
       this.lastCheckTime = new Date();
@@ -260,6 +263,7 @@ class GuideSyncService {
 
   startMonitoring() {
     console.log('🚀 Starting guide sync monitoring (every 5 seconds)');
+    console.log('📝 Note: Syncs ALL paid tours, not just new ones');
     
     // Schedule task to run every 5 seconds
     cron.schedule('*/5 * * * * *', async () => {

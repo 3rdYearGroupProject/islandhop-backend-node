@@ -14,7 +14,12 @@ router.get('/trips/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     console.log('Fetching trips for UID: from touristroutes', userId);
-    const tripsData = await Trip.find({ uid: userId });
+    //const tripsData = await Trip.find({ userId: userId });
+    const tripsData = await mongoose.connection
+  .collection('payed_finished_trips')
+  .find({ userId: userId })
+  .toArray();
+
     console.log('Trips data fetched:', tripsData);
     if (tripsData.length != 0) {
       const data = {

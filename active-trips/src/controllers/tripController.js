@@ -443,8 +443,7 @@ const newActivateTrip = async (req, res) => {
         
         // Prepare request data for guide assignment
         const guideRequestData = {
-          tripDays: tripDays,
-          vehicleType: trip.vehicleType || 'Unknown'
+          tripDays: tripDays
         };
         console.log('[NEW_ACTIVATE_TRIP] Guide request data:', guideRequestData);
         
@@ -775,6 +774,9 @@ const acceptDriver = async (req, res) => {
     }
 
     // Add driver to chat group if driverUID is provided
+    let chatGroupUpdated = false;
+    let chatGroupMessage = '';
+    
     if (driverUID) {
       try {
         console.log('[ACCEPT_DRIVER] Attempting to add driver to chat group');
@@ -799,35 +801,15 @@ const acceptDriver = async (req, res) => {
             
             console.log(`[ACCEPT_DRIVER] Driver ${driverUID} added to chat group for trip ${tripId}`);
             console.log('[ACCEPT_DRIVER] Updated group member_ids:', updatedGroup.member_ids);
-            
-            // Return success response for chat group update
-            return res.json({
-              success: true,
-              message: tripUpdateSuccess ? 'Driver accepted and added to chat group successfully' : 'Driver added to chat group successfully (trip not found in database)',
-              data: {
-                tripUpdateSuccess,
-                tripData: updatedTrip,
-                chatGroupUpdated: true,
-                newMemberIds: updatedGroup.member_ids
-              }
-            });
+            chatGroupUpdated = true;
+            chatGroupMessage = 'Driver added to chat group successfully';
           } else {
             console.log(`[ACCEPT_DRIVER] Driver ${driverUID} already exists in chat group`);
-            
-            // Return success response even if driver already in group
-            return res.json({
-              success: true,
-              message: tripUpdateSuccess ? 'Driver accepted successfully (already in chat group)' : 'Driver already in chat group (trip not found in database)',
-              data: {
-                tripUpdateSuccess,
-                tripData: updatedTrip,
-                chatGroupUpdated: false,
-                message: 'Driver already in group'
-              }
-            });
+            chatGroupMessage = 'Driver already in chat group';
           }
         } else {
           console.log(`[ACCEPT_DRIVER] No chat group found for tripId: ${tripId}`);
+          chatGroupMessage = 'No chat group found';
           
           if (!tripUpdateSuccess) {
             return res.status(404).json({
@@ -843,6 +825,7 @@ const acceptDriver = async (req, res) => {
       } catch (chatError) {
         console.error('[ACCEPT_DRIVER] Error updating chat group:', chatError);
         console.error('[ACCEPT_DRIVER] Chat error message:', chatError.message);
+        chatGroupMessage = `Chat group update failed: ${chatError.message}`;
         
         if (!tripUpdateSuccess) {
           return res.status(500).json({
@@ -866,12 +849,50 @@ const acceptDriver = async (req, res) => {
     }
 
     console.log(`[ACCEPT_DRIVER] Driver accepted for trip ${tripId}: ${email}, status: 1`);
+    
+    // Check if guide is also needed and confirmed, then proceed to next stage
+    if (updatedTrip.guideNeeded == 1 && updatedTrip.guide_status == 1) {
+      console.log('[ACCEPT_DRIVER] Guide is also needed and confirmed. Proceeding to start trip...');
+      try {
+        const startTripResponse = await axios.post('http://localhost:5007/api/trips/start-trip', {
+          tripId: tripId
+        });
+        console.log('[ACCEPT_DRIVER] Trip started successfully:', startTripResponse.data);
+        
+        console.log('[ACCEPT_DRIVER] Sending success response with trip started');
+        return res.json({
+          success: true,
+          message: 'Driver accepted successfully and trip started',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: true,
+          startTripResponse: startTripResponse.data
+        });
+      } catch (startTripError) {
+        console.error('[ACCEPT_DRIVER] Error starting trip:', startTripError.message);
+        // Continue with normal response even if start-trip fails
+        console.log('[ACCEPT_DRIVER] Sending success response without trip start');
+        return res.json({
+          success: true,
+          message: 'Driver accepted successfully but failed to start trip',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: false,
+          startTripError: startTripError.message
+        });
+      }
+    }
+    
     console.log('[ACCEPT_DRIVER] Sending success response');
 
     res.json({
       success: true,
       message: 'Driver accepted successfully',
-      data: updatedTrip
+      data: updatedTrip,
+      chatGroupUpdated,
+      chatGroupMessage
     });
   } catch (error) {
     console.error('[ACCEPT_DRIVER] Error occurred:', error);
@@ -890,8 +911,8 @@ const acceptGuide = async (req, res) => {
   console.log('[ACCEPT_GUIDE] Request body:', req.body);
   
   try {
-    const { tripId, email } = req.body;
-    console.log('[ACCEPT_GUIDE] Extracted tripId:', tripId, 'email:', email);
+    const { tripId, email, guideUID, adminID } = req.body;
+    console.log('[ACCEPT_GUIDE] Extracted tripId:', tripId, 'email:', email, 'guideUID:', guideUID, 'adminID:', adminID);
 
     if (!tripId || !email) {
       console.log('[ACCEPT_GUIDE] Validation failed - missing required fields');
@@ -902,17 +923,111 @@ const acceptGuide = async (req, res) => {
     }
 
     console.log('[ACCEPT_GUIDE] Attempting to update guide status in database');
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      tripId,
-      {
-        guide_status: 1
-      },
-      { new: true }
-    );
+    
+    // Try to find trip by MongoDB ObjectId first, then by custom tripId field
+    let updatedTrip;
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(tripId);
+    
+    if (isValidObjectId) {
+      console.log('[ACCEPT_GUIDE] Using MongoDB ObjectId search');
+      updatedTrip = await Trip.findByIdAndUpdate(
+        tripId,
+        {
+          guide_status: 1
+        },
+        { new: true }
+      );
+    } else {
+      console.log('[ACCEPT_GUIDE] Using custom tripId field search');
+      updatedTrip = await Trip.findOneAndUpdate(
+        { _id: tripId },
+        {
+          guide_status: 1
+        },
+        { new: true }
+      );
+    }
+    
     console.log('[ACCEPT_GUIDE] Database update completed');
 
+    // Continue to chat group update even if trip not found (for testing purposes)
+    let tripUpdateSuccess = false;
     if (!updatedTrip) {
-      console.log('[ACCEPT_GUIDE] Trip not found in database');
+      console.log('[ACCEPT_GUIDE] Trip not found in database, but continuing with chat group update');
+    } else {
+      tripUpdateSuccess = true;
+      console.log('[ACCEPT_GUIDE] Trip found and updated successfully');
+    }
+
+    // Add guide to chat group if guideUID is provided
+    let chatGroupUpdated = false;
+    let chatGroupMessage = '';
+    
+    if (guideUID) {
+      try {
+        console.log('[ACCEPT_GUIDE] Attempting to add guide to chat group');
+        
+        // Use the tripId directly for chat group search (always use the provided tripId, not MongoDB _id)
+        const group = await Group.findOne({ trip_id: tripId });
+        
+        if (group) {
+          console.log('[ACCEPT_GUIDE] Found chat group for tripId:', tripId);
+          console.log('[ACCEPT_GUIDE] Current member_ids:', group.member_ids);
+          
+          // Check if guide is already in the group
+          if (!group.member_ids.includes(guideUID)) {
+            // Add guide to member_ids array
+            const updatedGroup = await Group.findByIdAndUpdate(
+              group._id,
+              {
+                $addToSet: { member_ids: guideUID }
+              },
+              { new: true }
+            );
+            
+            console.log(`[ACCEPT_GUIDE] Guide ${guideUID} added to chat group for trip ${tripId}`);
+            console.log('[ACCEPT_GUIDE] Updated group member_ids:', updatedGroup.member_ids);
+            chatGroupUpdated = true;
+            chatGroupMessage = 'Guide added to chat group successfully';
+          } else {
+            console.log(`[ACCEPT_GUIDE] Guide ${guideUID} already exists in chat group`);
+            chatGroupMessage = 'Guide already in chat group';
+          }
+        } else {
+          console.log(`[ACCEPT_GUIDE] No chat group found for tripId: ${tripId}`);
+          chatGroupMessage = 'No chat group found';
+          
+          if (!tripUpdateSuccess) {
+            return res.status(404).json({
+              success: false,
+              message: 'Trip not found in database and no chat group found',
+              data: {
+                tripUpdateSuccess: false,
+                chatGroupFound: false
+              }
+            });
+          }
+        }
+      } catch (chatError) {
+        console.error('[ACCEPT_GUIDE] Error updating chat group:', chatError);
+        console.error('[ACCEPT_GUIDE] Chat error message:', chatError.message);
+        chatGroupMessage = `Chat group update failed: ${chatError.message}`;
+        
+        if (!tripUpdateSuccess) {
+          return res.status(500).json({
+            success: false,
+            message: 'Trip not found and error updating chat group',
+            error: chatError.message
+          });
+        }
+        // Continue execution if trip was updated successfully
+      }
+    } else {
+      console.log('[ACCEPT_GUIDE] No guideUID provided, skipping chat group update');
+    }
+
+    // If we reach here and trip was not found, return error
+    if (!tripUpdateSuccess) {
       return res.status(404).json({
         success: false,
         message: 'Trip not found'
@@ -920,12 +1035,50 @@ const acceptGuide = async (req, res) => {
     }
 
     console.log(`[ACCEPT_GUIDE] Guide accepted for trip ${tripId}: ${email}, status: 1`);
+    
+    // Check if driver is also needed and confirmed, then proceed to next stage
+    if (updatedTrip.driverNeeded == 1 && updatedTrip.driver_status == 1) {
+      console.log('[ACCEPT_GUIDE] Driver is also needed and confirmed. Proceeding to start trip...');
+      try {
+        const startTripResponse = await axios.post('http://localhost:5007/api/trips/start-trip', {
+          tripId: tripId
+        });
+        console.log('[ACCEPT_GUIDE] Trip started successfully:', startTripResponse.data);
+        
+        console.log('[ACCEPT_GUIDE] Sending success response with trip started');
+        return res.json({
+          success: true,
+          message: 'Guide accepted successfully and trip started',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: true,
+          startTripResponse: startTripResponse.data
+        });
+      } catch (startTripError) {
+        console.error('[ACCEPT_GUIDE] Error starting trip:', startTripError.message);
+        // Continue with normal response even if start-trip fails
+        console.log('[ACCEPT_GUIDE] Sending success response without trip start');
+        return res.json({
+          success: true,
+          message: 'Guide accepted successfully but failed to start trip',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: false,
+          startTripError: startTripError.message
+        });
+      }
+    }
+    
     console.log('[ACCEPT_GUIDE] Sending success response');
 
     res.json({
       success: true,
       message: 'Guide accepted successfully',
-      data: updatedTrip
+      data: updatedTrip,
+      chatGroupUpdated,
+      chatGroupMessage
     });
   } catch (error) {
     console.error('[ACCEPT_GUIDE] Error occurred:', error);
