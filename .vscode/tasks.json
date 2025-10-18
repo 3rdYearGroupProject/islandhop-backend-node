@@ -1,0 +1,151 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start All Microservices",
+      "dependsOn": [
+        "active-trips",
+        "admin-subservice",
+        // "api-gateway",
+        "bank-transfer",
+        "complete-trip-service",
+        "data-migration-service",
+        "db-migration-service",
+        "driver-microservice",
+        "finished-trips-service",
+        "guide-microservice",
+        "panic-alerts-service",
+        "payment-service",
+        "pooling-confirm",
+        "route-service",
+        "schedule-service",
+        "scoring-service",
+        "support-agent-service",
+        "user-service",
+        "verification-service",
+        // "email-service"
+      ],
+      "dependsOrder": "parallel"
+    },
+    {
+      "label": "active-trips",
+      "type": "shell",
+      "command": "cd active-trips; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "admin-subservice",
+      "type": "shell",
+      "command": "cd admin-subservice; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    // {
+    //   "label": "api-gateway",
+    //   "type": "shell",
+    //   "command": "cd api-gateway; npm run dev",
+    //   "presentation": { "panel": "dedicated" }
+    // },
+    {
+      "label": "bank-transfer",
+      "type": "shell",
+      "command": "cd bank-transfer; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "complete-trip-service",
+      "type": "shell",
+      "command": "cd complete-trip-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "data-migration-service",
+      "type": "shell",
+      "command": "cd data-migration-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "db-migration-service",
+      "type": "shell",
+      "command": "cd db-migration-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "driver-microservice",
+      "type": "shell",
+      "command": "cd driver-microservice; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "finished-trips-service",
+      "type": "shell",
+      "command": "cd finished-trips-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "guide-microservice",
+      "type": "shell",
+      "command": "cd guide-microservice; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "panic-alerts-service",
+      "type": "shell",
+      "command": "cd panic-alerts-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "payment-service",
+      "type": "shell",
+      "command": "cd payment-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "pooling-confirm",
+      "type": "shell",
+      "command": "cd pooling-confirm; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "route-service",
+      "type": "shell",
+      "command": "cd route-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "schedule-service",
+      "type": "shell",
+      "command": "cd schedule-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "scoring-service",
+      "type": "shell",
+      "command": "cd scoring-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "support-agent-service",
+      "type": "shell",
+      "command": "cd support-agent-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "user-service",
+      "type": "shell",
+      "command": "cd user-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "verification-service",
+      "type": "shell",
+      "command": "cd verification-service; npm run dev",
+      "presentation": { "panel": "dedicated" }
+    },
+    // {
+    //   "label": "email-service",
+    //   "type": "shell",
+    //   "command": "cd email-service; npm run dev",
+    //   "presentation": { "panel": "dedicated" }
+    // }
+  ]
+}
