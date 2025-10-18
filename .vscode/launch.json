@@ -1,0 +1,192 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "active-trips",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/active-trips",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "admin-subservice",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/admin-subservice",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "api-gateway",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/api-gateway",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "bank-transfer",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/bank-transfer",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "complete-trip-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/complete-trip-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "data-migration-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/data-migration-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "db-migration-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/db-migration-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "driver-microservice",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/driver-microservice",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "finished-trips-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/finished-trips-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "guide-microservice",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/guide-microservice",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "panic-alerts-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/panic-alerts-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "payment-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/payment-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "pooling-confirm",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/pooling-confirm",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "route-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/route-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "schedule-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/schedule-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "scoring-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/scoring-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "support-agent-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/support-agent-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "user-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/user-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "verification-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/verification-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    },
+    {
+      "name": "email-service",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/email-service",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Start All Microservices",
+      "configurations": [
+        "active-trips",
+        "admin-subservice",
+        "api-gateway",
+        "bank-transfer",
+        "complete-trip-service",
+        "data-migration-service",
+        "db-migration-service",
+        "driver-microservice",
+        "finished-trips-service",
+        "guide-microservice",
+        "panic-alerts-service",
+        "payment-service",
+        "pooling-confirm",
+        "route-service",
+        "schedule-service",
+        "scoring-service",
+        "support-agent-service",
+        "user-service",
+        "verification-service",
+        "email-service"
+      ]
+    }
+  ]
+}
