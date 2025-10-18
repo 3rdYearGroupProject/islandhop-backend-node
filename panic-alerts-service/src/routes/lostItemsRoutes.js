@@ -9,21 +9,20 @@ const router = express.Router();
 // Function to fetch user details from Supabase DB
 async function fetchUserDetails(driverEmails, guideEmails, touristEmails) {
     const client = new Client({
-        connectionString: process.env.DATABASE_URL, // Add this to your .env file
+        connectionString: process.env.NEON_DATABASE_URL, // Supabase URL
         ssl: { 
-            rejectUnauthorized: false // This fixes the self-signed certificate issue
+            rejectUnauthorized: false
         }
     });
 
     try {
         await client.connect();
-        
         const userMap = {};
         
-        // Fetch driver details from driver_profiles table
+        // Fetch driver details
         if (driverEmails.length > 0) {
             const driverQuery = `
-                SELECT id, first_name,last_name, email, emergency_contact_number 
+                SELECT id, first_name, last_name, email, emergency_contact_number 
                 FROM driver_profiles 
                 WHERE email = ANY($1)
             `;
@@ -39,10 +38,10 @@ async function fetchUserDetails(driverEmails, guideEmails, touristEmails) {
             console.log(`Fetched ${driverResult.rows.length} driver details`);
         }
         
-        // Fetch guide details from guide_profiles table
+        // Fetch guide details
         if (guideEmails.length > 0) {
             const guideQuery = `
-                SELECT id, first_name,last_name, email, emergency_contact_number 
+                SELECT id, first_name, last_name, email, emergency_contact_number 
                 FROM guide_profiles 
                 WHERE email = ANY($1)
             `;
@@ -58,10 +57,10 @@ async function fetchUserDetails(driverEmails, guideEmails, touristEmails) {
             console.log(`Fetched ${guideResult.rows.length} guide details`);
         }
         
-        // Fetch tourist details from tourist_profiles table
+        // Fetch tourist details
         if (touristEmails.length > 0) {
             const touristQuery = `
-                SELECT id,email, first_name, last_name, nationality 
+                SELECT id, email, first_name, last_name, nationality 
                 FROM tourist_profiles 
                 WHERE email = ANY($1)
             `;
@@ -79,7 +78,7 @@ async function fetchUserDetails(driverEmails, guideEmails, touristEmails) {
         
         return userMap;
     } catch (error) {
-        console.error('Error fetching user details from Supabase DB:', error);
+        console.error('Error fetching user details from Supabase:', error);
         return {};
     } finally {
         await client.end();
@@ -145,19 +144,14 @@ router.get('/getLostItems', async (req, res) => {
         // Extract unique tourist emails from lost items
         const touristEmails = [...new Set(lostItems.map(item => item.email).filter(Boolean))];
 
-        console.log(`Fetching details for ${driverEmails.length} drivers, ${guideEmails.length} guides, and ${touristEmails.length} tourists from Supabase DB`);
-        console.log('Driver Emails:', driverEmails);
-        console.log('Guide Emails:', guideEmails);
-        console.log('Tourist Emails:', touristEmails);
+        console.log(`Fetching details for ${driverEmails.length} drivers, ${guideEmails.length} guides, and ${touristEmails.length} tourists from Supabase`);
 
         // Fetch user details from Supabase DB (separate tables)
         const userDetails = await fetchUserDetails(driverEmails, guideEmails, touristEmails);
 
         // Merge trip details with lost items
         const lostItemsWithTripDetails = lostItems.map(lostItem => {
-            console.log(`Looking up trip for lostItem tripId: ${lostItem.tripId}`);
             const tripDetails = tripMap[lostItem.tripId] || null;
-            console.log(`Trip found:`, tripDetails ? 'Yes' : 'No');
             const touristDetails = userDetails[lostItem.email] || null;
 
             return {
@@ -185,23 +179,35 @@ router.get('/getLostItems', async (req, res) => {
                     endDate: tripDetails.endDate || null,
                     guide: {
                         email: tripDetails.guide_email,
-                        ...userDetails[tripDetails.guide_email] || { 
+                        ...(userDetails[tripDetails.guide_email] ? {
+                            ...userDetails[tripDetails.guide_email],
+                            // Handle null names in database
+                            first_name: userDetails[tripDetails.guide_email].first_name || 'Guide',
+                            last_name: userDetails[tripDetails.guide_email].last_name || 'Name Not Set',
+                            emergency_contact_number: userDetails[tripDetails.guide_email].emergency_contact_number || 'N/A'
+                        } : { 
                             first_name: 'Guide', 
                             last_name: 'Not Found',
                             email: tripDetails.guide_email || 'N/A', 
                             emergency_contact_number: 'N/A',
                             user_type: 'guide'
-                        }
+                        })
                     },
                     driver: {
                         email: tripDetails.driver_email,
-                        ...userDetails[tripDetails.driver_email] || { 
+                        ...(userDetails[tripDetails.driver_email] ? {
+                            ...userDetails[tripDetails.driver_email],
+                            // Handle null names in database
+                            first_name: userDetails[tripDetails.driver_email].first_name || 'Driver',
+                            last_name: userDetails[tripDetails.driver_email].last_name || 'Name Not Set',
+                            emergency_contact_number: userDetails[tripDetails.driver_email].emergency_contact_number || 'N/A'
+                        } : { 
                             first_name: 'Driver',
                             last_name: 'Not Found',
                             email: tripDetails.driver_email || 'N/A', 
                             emergency_contact_number: 'N/A',
                             user_type: 'driver'
-                        }
+                        })
                     },
                     // Add any other trip fields you need
                 } : {

@@ -9,7 +9,7 @@ const router = express.Router();
 // Function to fetch tourist details from Supabase DB
 async function fetchTouristDetails(emails) {
     const client = new Client({
-        connectionString: process.env.DATABASE_URL,
+        connectionString: process.env.NEON_DATABASE_URL,
         ssl: { 
             rejectUnauthorized: false
         }
@@ -158,15 +158,15 @@ router.get('/', async (req, res) => {
     // Get lost-items database connection
     const { lostItemsDb } = req.app.locals.dbConnections;
     
-    // Fetch all panic alerts without any filters
+    // Fetch only unresolved panic alerts
     const alerts = await lostItemsDb.collection('panic_alerts')
-      .find({}) // Empty filter object - gets all documents
+      .find({ status: "not_resolved" }) // Filter for only unresolved alerts
       .sort({ createdAt: -1 }) // Most recent first using createdAt
       .limit(parseInt(limit))
       .skip(parseInt(skip))
       .toArray();
     
-    console.log(`📋 Found ${alerts.length} panic alerts`);
+    console.log(`📋 Found ${alerts.length} unresolved panic alerts`);
 
     // Extract unique emails from panic alerts
     const emails = [...new Set(alerts.map(alert => alert.userEmail).filter(Boolean))];
@@ -195,7 +195,7 @@ router.get('/', async (req, res) => {
       };
     });
     
-    const totalCount = await lostItemsDb.collection('panic_alerts').countDocuments({});
+    const totalCount = await lostItemsDb.collection('panic_alerts').countDocuments({ status: "not_resolved" });
     
     console.log(`📋 Mapped ${alertsWithTouristDetails.length} panic alerts with tourist details`);
     
