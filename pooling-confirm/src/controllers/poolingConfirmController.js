@@ -13,17 +13,17 @@ class PoolingConfirmController {
       // Validation schema
       const schema = Joi.object({
         tripId: Joi.string().required(),
-        groupId: Joi.string().optional(), // Now optional since we find by tripId
+        groupId: Joi.string().optional(),
         userId: Joi.string().required(),
         minMembers: Joi.number().min(2).max(20).default(2),
         maxMembers: Joi.number().min(2).max(20).default(12),
         tripStartDate: Joi.date().iso().optional(),
         tripEndDate: Joi.date().iso().optional(),
-        confirmationHours: Joi.number().min(1).max(168).default(48), // 1 hour to 1 week
+        confirmationHours: Joi.number().min(1).max(168).default(48),
         totalAmount: Joi.number().min(0).optional(),
         pricePerPerson: Joi.number().min(0).optional(),
         currency: Joi.string().valid('LKR', 'USD', 'EUR').default('LKR'),
-        paymentDeadlineHours: Joi.number().min(1).max(336).default(72), // 1 hour to 2 weeks (for backward compatibility)
+        paymentDeadlineHours: Joi.number().min(1).max(336).default(72),
         tripDetails: Joi.object().default({})
       });
 
@@ -38,15 +38,64 @@ class PoolingConfirmController {
 
       const { tripId, groupId, userId, ...confirmationData } = value;
 
-      // Use groupId from the found group data, not from request
-      const result = await poolingConfirmService.initiateConfirmation(tripId, userId, confirmationData);
+      // Fetch initiated trip from MongoDB Atlas
+      const mongoose = require('mongoose');
+      const initiatedConn = await mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_trips?retryWrites=true&w=majority', {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+      const initiatedTripSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'initiated_trips' });
+      const InitiatedTrip = initiatedConn.model('InitiatedTrip', initiatedTripSchema);
+      let initiatedTrip = await InitiatedTrip.findOne({ _id: tripId }).lean();
+      if (!initiatedTrip) {
+        initiatedTrip = await InitiatedTrip.findOne({ tripId: tripId }).lean();
+      }
+      if (!initiatedTrip) throw new Error('Initiated trip does not exist');
+
+      // Fetch group from islandhop_pooling.groups
+      const groupConn = await mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_pooling?retryWrites=true&w=majority', {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+      const groupSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'groups' });
+      const Group = groupConn.model('Group', groupSchema);
+      let group = await Group.findOne({ tripId: tripId }).lean();
+      if (!group) throw new Error('Group does not exist');
+
+      // Calculate payment details
+      const averageTripDistance = initiatedTrip.averageTripDistance || 0;
+      const averageDriverCost = initiatedTrip.averageDriverCost || group.averageDriverCost || 0;
+      const averageGuideCost = initiatedTrip.averageGuideCost || group.averageGuideCost || 0;
+      const startDate = new Date(initiatedTrip.startDate);
+      const endDate = new Date(initiatedTrip.endDate);
+      const numberOfDays = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+      const totalCost = (averageTripDistance * averageDriverCost) + (numberOfDays * averageGuideCost);
+      const maxMembers = group.maxMembers || group.maxParticipants || confirmationData.maxMembers || 1;
+      const pricePerPerson = Math.ceil(totalCost / maxMembers);
+
+      // Compose confirmationData with real payment info
+      const confirmationDataWithPayment = {
+        ...confirmationData,
+        tripStartDate: initiatedTrip.startDate,
+        tripEndDate: initiatedTrip.endDate,
+        totalAmount: totalCost,
+        pricePerPerson,
+        currency: initiatedTrip.currency || 'LKR',
+        tripDetails: initiatedTrip,
+        maxMembers
+      };
+
+      // Use groupId from group
+      const result = await poolingConfirmService.initiateConfirmation(tripId, userId, confirmationDataWithPayment);
+
+      await initiatedConn.close();
+      await groupConn.close();
 
       res.status(201).json({
         success: true,
         message: 'Trip confirmation initiated successfully',
         data: result
       });
-
     } catch (error) {
       logger.error('Error in initiateConfirmation:', error);
       
@@ -688,6 +737,36 @@ class PoolingConfirmController {
                    statusCode === 403 ? 'UNAUTHORIZED' :
                    statusCode === 409 ? 'PAYMENT_CONFLICT' :
                    statusCode === 502 ? 'EXTERNAL_SERVICE_ERROR' : 'INTERNAL_ERROR'
+      });
+    }
+  }
+
+  /**
+   * POST /api/v1/pooling-confirm/:tripId/complete-payment
+   * Complete full payment (upfront + final) for a user in a specific trip
+   */
+  async completeFullPayment(req, res) {
+    try {
+      const { tripId } = req.params;
+      const { userId } = req.body;
+      logger.info(`Complete FULL payment request for tripId: ${tripId}, userId: ${userId}`);
+      // Complete upfront payment
+      const upfrontResult = await poolingConfirmService.completePayment(tripId, userId);
+      // Complete final payment
+      const finalResult = await poolingConfirmService.completeFinalPayment(tripId, userId);
+      res.status(200).json({
+        success: true,
+        message: 'Full payment (upfront + final) completed successfully',
+        data: {
+          upfront: upfrontResult.data,
+          final: finalResult.data
+        }
+      });
+    } catch (error) {
+      logger.error('Error in completeFullPayment:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error'
       });
     }
   }
