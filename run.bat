@@ -47,6 +47,9 @@ echo - API Gateway: Port 8000
 echo - Payment Service: Port varies
 echo - Pooling Confirm Service: Port varies
 echo - Finished Trips Service: Port 4015
+echo - Admin Subservice: Port varies
+echo - Bank Transfer Service: Port varies
+echo - Data Migration Service: Port varies
 echo.
 echo Press any key to exit...
 pause >nul
@@ -138,6 +141,21 @@ cd finished-trips-service
 start "Finished Trips Service - Install & Run" cmd /k "prompt FinishedTrips$G $P$G && npm install && npm run dev"
 cd ..
 
+echo Starting Admin Subservice with install...
+cd admin-subservice
+start "Admin Subservice - Install & Run" cmd /k "prompt AdminSubservice$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Starting Bank Transfer Service with install...
+cd bank-transfer
+start "Bank Transfer Service - Install & Run" cmd /k "prompt BankTransfer$G $P$G && npm install && npm run dev"
+cd ..
+
+echo Starting Data Migration Service with install...
+cd data-migration-service
+start "Data Migration Service - Install & Run" cmd /k "prompt DataMigration$G $P$G && npm install && npm run dev"
+cd ..
+
 goto :eof
 
 :run_only
@@ -224,6 +242,21 @@ cd ..
 echo Starting Finished Trips Service...
 cd finished-trips-service
 start "Finished Trips Service - Run Only" cmd /k "prompt FinishedTrips$G $P$G && npm run dev"
+cd ..
+
+echo Starting Admin Subservice...
+cd admin-subservice
+start "Admin Subservice - Run Only" cmd /k "prompt AdminSubservice$G $P$G && npm run dev"
+cd ..
+
+echo Starting Bank Transfer Service...
+cd bank-transfer
+start "Bank Transfer Service - Run Only" cmd /k "prompt BankTransfer$G $P$G && npm run dev"
+cd ..
+
+echo Starting Data Migration Service...
+cd data-migration-service
+start "Data Migration Service - Run Only" cmd /k "prompt DataMigration$G $P$G && npm run dev"
 cd ..
 
 goto :eof

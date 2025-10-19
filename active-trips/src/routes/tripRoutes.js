@@ -10,7 +10,8 @@ const {
   getTripsByDriverEmail,
   getTripsByGuideEmail,
   acceptDriver,
-  acceptGuide
+  acceptGuide,
+  getOngoingPoolsForUser
 } = require('../controllers/tripController');
 
 // Route to set driver for a trip
@@ -42,5 +43,8 @@ router.post('/accept_driver', acceptDriver);
 
 // Route to accept guide assignment for a trip
 router.post('/accept_guide', acceptGuide);
+
+// Route to get ongoing pools for a specific user
+router.get('/pools/user/:userId', getOngoingPoolsForUser);
 
 module.exports = router;

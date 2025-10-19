@@ -237,7 +237,7 @@ const confirmedTripSchema = new mongoose.Schema({
     confirmedAt: Date,
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'failed'],
+      enum: ['pending', 'partial', 'completed', 'paid', 'failed'],
       default: 'pending'
     }
   }],

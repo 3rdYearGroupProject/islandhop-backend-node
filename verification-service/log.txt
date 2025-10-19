@@ -187,3 +187,11 @@
 2025-10-19T05:04:50.134Z - Successfully updated driver with ID: 3170bbc6-f7b5-46da-8a11-cb439b603c37
 2025-10-19T05:04:55.590Z - Fetched drivers with filters: {}
 2025-10-19T05:04:59.644Z - Fetched drivers with filters: {}
+[2025-10-18T12:14:40.691Z] Verification service started.
+[2025-10-18T12:14:50.679Z] Verification service started.
+[2025-10-18T12:18:04.825Z] Verification service started.
+[2025-10-18T13:13:28.393Z] Incoming request: GET /health
+[2025-10-18T13:13:32.411Z] Incoming request: GET /health
+[2025-10-18T20:39:43.016Z] Verification service started.
+[2025-10-18T20:40:34.181Z] Verification service started.
+[2025-10-19T01:38:24.332Z] Verification service started.

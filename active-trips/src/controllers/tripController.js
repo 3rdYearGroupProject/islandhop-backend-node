@@ -1,4 +1,5 @@
 const Trip = require('../models/Trip');
+const PoolingGroup = require('../models/PoolingGroup');
 const axios = require('axios');
 const mongoose = require('mongoose');
 
@@ -774,6 +775,9 @@ const acceptDriver = async (req, res) => {
     }
 
     // Add driver to chat group if driverUID is provided
+    let chatGroupUpdated = false;
+    let chatGroupMessage = '';
+    
     if (driverUID) {
       try {
         console.log('[ACCEPT_DRIVER] Attempting to add driver to chat group');
@@ -798,35 +802,15 @@ const acceptDriver = async (req, res) => {
             
             console.log(`[ACCEPT_DRIVER] Driver ${driverUID} added to chat group for trip ${tripId}`);
             console.log('[ACCEPT_DRIVER] Updated group member_ids:', updatedGroup.member_ids);
-            
-            // Return success response for chat group update
-            return res.json({
-              success: true,
-              message: tripUpdateSuccess ? 'Driver accepted and added to chat group successfully' : 'Driver added to chat group successfully (trip not found in database)',
-              data: {
-                tripUpdateSuccess,
-                tripData: updatedTrip,
-                chatGroupUpdated: true,
-                newMemberIds: updatedGroup.member_ids
-              }
-            });
+            chatGroupUpdated = true;
+            chatGroupMessage = 'Driver added to chat group successfully';
           } else {
             console.log(`[ACCEPT_DRIVER] Driver ${driverUID} already exists in chat group`);
-            
-            // Return success response even if driver already in group
-            return res.json({
-              success: true,
-              message: tripUpdateSuccess ? 'Driver accepted successfully (already in chat group)' : 'Driver already in chat group (trip not found in database)',
-              data: {
-                tripUpdateSuccess,
-                tripData: updatedTrip,
-                chatGroupUpdated: false,
-                message: 'Driver already in group'
-              }
-            });
+            chatGroupMessage = 'Driver already in chat group';
           }
         } else {
           console.log(`[ACCEPT_DRIVER] No chat group found for tripId: ${tripId}`);
+          chatGroupMessage = 'No chat group found';
           
           if (!tripUpdateSuccess) {
             return res.status(404).json({
@@ -842,6 +826,7 @@ const acceptDriver = async (req, res) => {
       } catch (chatError) {
         console.error('[ACCEPT_DRIVER] Error updating chat group:', chatError);
         console.error('[ACCEPT_DRIVER] Chat error message:', chatError.message);
+        chatGroupMessage = `Chat group update failed: ${chatError.message}`;
         
         if (!tripUpdateSuccess) {
           return res.status(500).json({
@@ -865,12 +850,50 @@ const acceptDriver = async (req, res) => {
     }
 
     console.log(`[ACCEPT_DRIVER] Driver accepted for trip ${tripId}: ${email}, status: 1`);
+    
+    // Check if guide is also needed and confirmed, then proceed to next stage
+    if (updatedTrip.guideNeeded == 1 && updatedTrip.guide_status == 1) {
+      console.log('[ACCEPT_DRIVER] Guide is also needed and confirmed. Proceeding to start trip...');
+      try {
+        const startTripResponse = await axios.post('http://localhost:5007/api/trips/start-trip', {
+          tripId: tripId
+        });
+        console.log('[ACCEPT_DRIVER] Trip started successfully:', startTripResponse.data);
+        
+        console.log('[ACCEPT_DRIVER] Sending success response with trip started');
+        return res.json({
+          success: true,
+          message: 'Driver accepted successfully and trip started',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: true,
+          startTripResponse: startTripResponse.data
+        });
+      } catch (startTripError) {
+        console.error('[ACCEPT_DRIVER] Error starting trip:', startTripError.message);
+        // Continue with normal response even if start-trip fails
+        console.log('[ACCEPT_DRIVER] Sending success response without trip start');
+        return res.json({
+          success: true,
+          message: 'Driver accepted successfully but failed to start trip',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: false,
+          startTripError: startTripError.message
+        });
+      }
+    }
+    
     console.log('[ACCEPT_DRIVER] Sending success response');
 
     res.json({
       success: true,
       message: 'Driver accepted successfully',
-      data: updatedTrip
+      data: updatedTrip,
+      chatGroupUpdated,
+      chatGroupMessage
     });
   } catch (error) {
     console.error('[ACCEPT_DRIVER] Error occurred:', error);
@@ -938,6 +961,9 @@ const acceptGuide = async (req, res) => {
     }
 
     // Add guide to chat group if guideUID is provided
+    let chatGroupUpdated = false;
+    let chatGroupMessage = '';
+    
     if (guideUID) {
       try {
         console.log('[ACCEPT_GUIDE] Attempting to add guide to chat group');
@@ -962,35 +988,15 @@ const acceptGuide = async (req, res) => {
             
             console.log(`[ACCEPT_GUIDE] Guide ${guideUID} added to chat group for trip ${tripId}`);
             console.log('[ACCEPT_GUIDE] Updated group member_ids:', updatedGroup.member_ids);
-            
-            // Return success response for chat group update
-            return res.json({
-              success: true,
-              message: tripUpdateSuccess ? 'Guide accepted and added to chat group successfully' : 'Guide added to chat group successfully (trip not found in database)',
-              data: {
-                tripUpdateSuccess,
-                tripData: updatedTrip,
-                chatGroupUpdated: true,
-                newMemberIds: updatedGroup.member_ids
-              }
-            });
+            chatGroupUpdated = true;
+            chatGroupMessage = 'Guide added to chat group successfully';
           } else {
             console.log(`[ACCEPT_GUIDE] Guide ${guideUID} already exists in chat group`);
-            
-            // Return success response even if guide already in group
-            return res.json({
-              success: true,
-              message: tripUpdateSuccess ? 'Guide accepted successfully (already in chat group)' : 'Guide already in chat group (trip not found in database)',
-              data: {
-                tripUpdateSuccess,
-                tripData: updatedTrip,
-                chatGroupUpdated: false,
-                message: 'Guide already in group'
-              }
-            });
+            chatGroupMessage = 'Guide already in chat group';
           }
         } else {
           console.log(`[ACCEPT_GUIDE] No chat group found for tripId: ${tripId}`);
+          chatGroupMessage = 'No chat group found';
           
           if (!tripUpdateSuccess) {
             return res.status(404).json({
@@ -1006,6 +1012,7 @@ const acceptGuide = async (req, res) => {
       } catch (chatError) {
         console.error('[ACCEPT_GUIDE] Error updating chat group:', chatError);
         console.error('[ACCEPT_GUIDE] Chat error message:', chatError.message);
+        chatGroupMessage = `Chat group update failed: ${chatError.message}`;
         
         if (!tripUpdateSuccess) {
           return res.status(500).json({
@@ -1029,16 +1036,205 @@ const acceptGuide = async (req, res) => {
     }
 
     console.log(`[ACCEPT_GUIDE] Guide accepted for trip ${tripId}: ${email}, status: 1`);
+    
+    // Check if driver is also needed and confirmed, then proceed to next stage
+    if (updatedTrip.driverNeeded == 1 && updatedTrip.driver_status == 1) {
+      console.log('[ACCEPT_GUIDE] Driver is also needed and confirmed. Proceeding to start trip...');
+      try {
+        const startTripResponse = await axios.post('http://localhost:5007/api/trips/start-trip', {
+          tripId: tripId
+        });
+        console.log('[ACCEPT_GUIDE] Trip started successfully:', startTripResponse.data);
+        
+        console.log('[ACCEPT_GUIDE] Sending success response with trip started');
+        return res.json({
+          success: true,
+          message: 'Guide accepted successfully and trip started',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: true,
+          startTripResponse: startTripResponse.data
+        });
+      } catch (startTripError) {
+        console.error('[ACCEPT_GUIDE] Error starting trip:', startTripError.message);
+        // Continue with normal response even if start-trip fails
+        console.log('[ACCEPT_GUIDE] Sending success response without trip start');
+        return res.json({
+          success: true,
+          message: 'Guide accepted successfully but failed to start trip',
+          data: updatedTrip,
+          chatGroupUpdated,
+          chatGroupMessage,
+          tripStarted: false,
+          startTripError: startTripError.message
+        });
+      }
+    }
+    
     console.log('[ACCEPT_GUIDE] Sending success response');
 
     res.json({
       success: true,
       message: 'Guide accepted successfully',
-      data: updatedTrip
+      data: updatedTrip,
+      chatGroupUpdated,
+      chatGroupMessage
     });
   } catch (error) {
     console.error('[ACCEPT_GUIDE] Error occurred:', error);
     console.error('[ACCEPT_GUIDE] Error message:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Get ongoing pools for a user
+const getOngoingPoolsForUser = async (req, res) => {
+  console.log('[GET_ONGOING_POOLS] Function called');
+  console.log('[GET_ONGOING_POOLS] Request params:', req.params);
+  
+  try {
+    const { userId } = req.params;
+    console.log('[GET_ONGOING_POOLS] Extracted userId:', userId);
+
+    if (!userId) {
+      console.log('[GET_ONGOING_POOLS] Validation failed - missing userId');
+      return res.status(400).json({
+        success: false,
+        message: 'userId is required'
+      });
+    }
+
+    console.log('[GET_ONGOING_POOLS] Fetching pools where user is a member');
+    // Step 1: Get all active pools where user is a member
+    const pools = await PoolingGroup.find({
+      userIds: userId,
+      status: 'active'
+    });
+
+    console.log(`[GET_ONGOING_POOLS] Found ${pools.length} active pools for user`);
+
+    if (pools.length === 0) {
+      console.log('[GET_ONGOING_POOLS] No active pools found for user');
+      return res.json({
+        success: true,
+        message: 'No ongoing pools found for this user',
+        data: []
+      });
+    }
+
+    console.log('[GET_ONGOING_POOLS] Fetching trip details from payed_trips_advance collection');
+    // Step 2: For each pool, get the trip details from payed_trips_advance
+    const ongoingPoolsWithTrips = [];
+    
+    for (const pool of pools) {
+      console.log(`[GET_ONGOING_POOLS] Processing pool: ${pool._id}, tripId: ${pool.tripId}`);
+      
+      // Find the trip in payed_trips_advance where _id matches pool.tripId
+      const trip = await Trip.findById(pool.tripId);
+      
+      if (trip) {
+        console.log(`[GET_ONGOING_POOLS] Found trip details for pool ${pool._id}`);
+        ongoingPoolsWithTrips.push({
+          poolDetails: {
+            poolId: pool._id,
+            tripId: pool.tripId,
+            groupName: pool.groupName,
+            tripName: pool.tripName,
+            creatorUserId: pool.creatorUserId,
+            creatorEmail: pool.creatorEmail,
+            members: pool.members,
+            visibility: pool.visibility,
+            preferences: pool.preferences,
+            status: pool.status,
+            createdAt: pool.createdAt,
+            lastUpdated: pool.lastUpdated,
+            maxMembers: pool.maxMembers,
+            averageDriverCost: pool.averageDriverCost,
+            averageGuideCost: pool.averageGuideCost,
+            totalCost: pool.totalCost,
+            costPerPerson: pool.costPerPerson,
+            vehicleType: pool.vehicleType,
+            needDriver: pool.needDriver,
+            needGuide: pool.needGuide
+          },
+          tripDetails: {
+            tripId: trip._id,
+            userId: trip.userId,
+            tripName: trip.tripName,
+            startDate: trip.startDate,
+            endDate: trip.endDate,
+            arrivalTime: trip.arrivalTime,
+            baseCity: trip.baseCity,
+            multiCityAllowed: trip.multiCityAllowed,
+            activityPacing: trip.activityPacing,
+            budgetLevel: trip.budgetLevel,
+            preferredTerrains: trip.preferredTerrains,
+            preferredActivities: trip.preferredActivities,
+            dailyPlans: trip.dailyPlans,
+            mapData: trip.mapData,
+            lastUpdated: trip.lastUpdated,
+            driverNeeded: trip.driverNeeded,
+            guideNeeded: trip.guideNeeded,
+            averageTripDistance: trip.averageTripDistance,
+            averageDriverCost: trip.averageDriverCost,
+            averageGuideCost: trip.averageGuideCost,
+            vehicleType: trip.vehicleType,
+            driverStatus: trip.driver_status,
+            driverEmail: trip.driver_email,
+            guideStatus: trip.guide_status,
+            guideEmail: trip.guide_email,
+            payedAmount: trip.payedAmount
+          }
+        });
+      } else {
+        console.log(`[GET_ONGOING_POOLS] Warning: No trip found for pool ${pool._id} with tripId ${pool.tripId}`);
+        // Include pool even if trip details not found
+        ongoingPoolsWithTrips.push({
+          poolDetails: {
+            poolId: pool._id,
+            tripId: pool.tripId,
+            groupName: pool.groupName,
+            tripName: pool.tripName,
+            creatorUserId: pool.creatorUserId,
+            creatorEmail: pool.creatorEmail,
+            members: pool.members,
+            visibility: pool.visibility,
+            preferences: pool.preferences,
+            status: pool.status,
+            createdAt: pool.createdAt,
+            lastUpdated: pool.lastUpdated,
+            maxMembers: pool.maxMembers,
+            averageDriverCost: pool.averageDriverCost,
+            averageGuideCost: pool.averageGuideCost,
+            totalCost: pool.totalCost,
+            costPerPerson: pool.costPerPerson,
+            vehicleType: pool.vehicleType,
+            needDriver: pool.needDriver,
+            needGuide: pool.needGuide
+          },
+          tripDetails: null
+        });
+      }
+    }
+
+    console.log(`[GET_ONGOING_POOLS] Successfully processed ${ongoingPoolsWithTrips.length} pools with trip details`);
+    console.log('[GET_ONGOING_POOLS] Sending success response');
+
+    res.json({
+      success: true,
+      message: 'Ongoing pools retrieved successfully',
+      count: ongoingPoolsWithTrips.length,
+      data: ongoingPoolsWithTrips
+    });
+
+  } catch (error) {
+    console.error('[GET_ONGOING_POOLS] Error occurred:', error);
+    console.error('[GET_ONGOING_POOLS] Error message:', error.message);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -1057,5 +1253,6 @@ module.exports = {
   getTripsByDriverEmail,
   getTripsByGuideEmail,
   acceptDriver,
-  acceptGuide
+  acceptGuide,
+  getOngoingPoolsForUser
 };
