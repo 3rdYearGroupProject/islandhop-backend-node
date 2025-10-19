@@ -80,6 +80,7 @@ module.exports = (pool, logger) => {
 
   // PUT /guides/certificates/:id
   router.put('/:id', async (req, res, next) => {
+    console.log(`Updating guide certificate with ID: ${req.params.id}`);
     try {
       const { status, certificate_issuer, issue_date, expiry_date } = req.body;
 

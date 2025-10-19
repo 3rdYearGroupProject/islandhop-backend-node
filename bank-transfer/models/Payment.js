@@ -29,8 +29,8 @@ const paymentSchema = new mongoose.Schema({
 });
 
 // Create models for both drivers and guides collections
-const DriversPayment = mongoose.model('drivers', paymentSchema, 'payment-service/drivers');
-const GuidesPayment = mongoose.model('guides', paymentSchema, 'payment-service/guides');
+const DriversPayment = mongoose.model('DriversPayment', paymentSchema, 'drivers_payments');
+const GuidesPayment = mongoose.model('GuidesPayment', paymentSchema, 'guides_payments');
 
 module.exports = {
   DriversPayment,
