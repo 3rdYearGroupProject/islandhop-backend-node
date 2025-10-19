@@ -1110,10 +1110,10 @@ const getOngoingPoolsForUser = async (req, res) => {
     }
 
     console.log('[GET_ONGOING_POOLS] Fetching pools where user is a member');
-    // Step 1: Get all active pools where user is a member
+    // Step 1: Get all active pools where user is a member (check both userIds and members array)
     const pools = await PoolingGroup.find({
-      userIds: userId,
-      status: 'active'
+      status: 'active',
+      'members.userId': userId  // Check if user exists in members array
     });
 
     console.log(`[GET_ONGOING_POOLS] Found ${pools.length} active pools for user`);
@@ -1128,7 +1128,8 @@ const getOngoingPoolsForUser = async (req, res) => {
     }
 
     console.log('[GET_ONGOING_POOLS] Fetching trip details from payed_trips_advance collection');
-    // Step 2: For each pool, get the trip details from payed_trips_advance
+    // Step 2: For each pool, check if trip exists in payed_trips_advance
+    // Only include pools that have corresponding trips in payed_trips_advance
     const ongoingPoolsWithTrips = [];
     
     for (const pool of pools) {
@@ -1138,7 +1139,7 @@ const getOngoingPoolsForUser = async (req, res) => {
       const trip = await Trip.findById(pool.tripId);
       
       if (trip) {
-        console.log(`[GET_ONGOING_POOLS] Found trip details for pool ${pool._id}`);
+        console.log(`[GET_ONGOING_POOLS] Found trip in payed_trips_advance for pool ${pool._id}`);
         ongoingPoolsWithTrips.push({
           poolDetails: {
             poolId: pool._id,
@@ -1151,13 +1152,18 @@ const getOngoingPoolsForUser = async (req, res) => {
             visibility: pool.visibility,
             preferences: pool.preferences,
             status: pool.status,
+            joinRequests: pool.joinRequests,
+            actions: pool.actions,
             createdAt: pool.createdAt,
             lastUpdated: pool.lastUpdated,
+            pendingInvitations: pool.pendingInvitations,
+            requiresApproval: pool.requiresApproval,
             maxMembers: pool.maxMembers,
             averageDriverCost: pool.averageDriverCost,
             averageGuideCost: pool.averageGuideCost,
             totalCost: pool.totalCost,
             costPerPerson: pool.costPerPerson,
+            maxParticipants: pool.maxParticipants,
             vehicleType: pool.vehicleType,
             needDriver: pool.needDriver,
             needGuide: pool.needGuide
@@ -1192,42 +1198,19 @@ const getOngoingPoolsForUser = async (req, res) => {
           }
         });
       } else {
-        console.log(`[GET_ONGOING_POOLS] Warning: No trip found for pool ${pool._id} with tripId ${pool.tripId}`);
-        // Include pool even if trip details not found
-        ongoingPoolsWithTrips.push({
-          poolDetails: {
-            poolId: pool._id,
-            tripId: pool.tripId,
-            groupName: pool.groupName,
-            tripName: pool.tripName,
-            creatorUserId: pool.creatorUserId,
-            creatorEmail: pool.creatorEmail,
-            members: pool.members,
-            visibility: pool.visibility,
-            preferences: pool.preferences,
-            status: pool.status,
-            createdAt: pool.createdAt,
-            lastUpdated: pool.lastUpdated,
-            maxMembers: pool.maxMembers,
-            averageDriverCost: pool.averageDriverCost,
-            averageGuideCost: pool.averageGuideCost,
-            totalCost: pool.totalCost,
-            costPerPerson: pool.costPerPerson,
-            vehicleType: pool.vehicleType,
-            needDriver: pool.needDriver,
-            needGuide: pool.needGuide
-          },
-          tripDetails: null
-        });
+        console.log(`[GET_ONGOING_POOLS] Skipping pool ${pool._id} - No trip found in payed_trips_advance with tripId ${pool.tripId}`);
+        // Skip this pool - don't send to frontend if trip is not in payed_trips_advance
       }
     }
 
-    console.log(`[GET_ONGOING_POOLS] Successfully processed ${ongoingPoolsWithTrips.length} pools with trip details`);
+    console.log(`[GET_ONGOING_POOLS] Successfully processed ${ongoingPoolsWithTrips.length} pools with trip details from payed_trips_advance`);
     console.log('[GET_ONGOING_POOLS] Sending success response');
 
     res.json({
       success: true,
-      message: 'Ongoing pools retrieved successfully',
+      message: ongoingPoolsWithTrips.length > 0 
+        ? 'Ongoing pools retrieved successfully' 
+        : 'No ongoing pools found with paid trips',
       count: ongoingPoolsWithTrips.length,
       data: ongoingPoolsWithTrips
     });
