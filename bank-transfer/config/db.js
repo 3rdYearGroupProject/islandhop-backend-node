@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const connectionString = 'mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/payment-service';
+    const connectionString = process.env.MONGODB_URL;
     
     const conn = await mongoose.connect(connectionString, {
       useNewUrlParser: true,
