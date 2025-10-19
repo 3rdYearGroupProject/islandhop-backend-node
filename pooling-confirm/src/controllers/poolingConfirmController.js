@@ -791,74 +791,14 @@ class PoolingConfirmController {
         });
       }
 
-      // Get the confirmed trip first to access member details
-      const ConfirmedTrip = require('../models/ConfirmedTrip');
-      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
-
-      if (!confirmedTrip) {
-        return res.status(404).json({
-          success: false,
-          message: 'No confirmed trip found for this tripId',
-          tripId
-        });
-      }
-
-      // Check if user is a member
-      if (!confirmedTrip.memberIds.includes(userId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'User is not a member of this trip'
-        });
-      }
-
-      // Get member details
-      const memberDetails = confirmedTrip.members.find(m => m.userId === userId) || {};
-      const memberPayment = confirmedTrip.paymentInfo.memberPayments.find(mp => mp.userId === userId);
-
-      logger.info(`✅ Found member: ${memberDetails.firstName} ${memberDetails.lastName}`);
-
-      // Complete upfront payment
-      const upfrontResult = await poolingConfirmService.completePayment(tripId, userId);
-      
-      // Complete final payment
-      const finalResult = await poolingConfirmService.completeFinalPayment(tripId, userId);
+      // Call the service method that handles both payments atomically
+      const result = await poolingConfirmService.completeFullPayment(tripId, userId);
 
       // Prepare response with member details
       res.status(200).json({
         success: true,
         message: 'Full payment (upfront + final) completed successfully',
-        data: {
-          tripId: confirmedTrip.tripId,
-          tripName: confirmedTrip.tripName,
-          groupName: confirmedTrip.groupName,
-          member: {
-            userId: userId,
-            email: memberDetails.email || '',
-            firstName: memberDetails.firstName || '',
-            lastName: memberDetails.lastName || '',
-            fullName: memberDetails.firstName && memberDetails.lastName 
-              ? `${memberDetails.firstName} ${memberDetails.lastName}` 
-              : memberDetails.email || userId,
-            nationality: memberDetails.nationality || '',
-            languages: memberDetails.languages || []
-          },
-          payment: {
-            upfrontPayment: {
-              amount: memberPayment?.upfrontPayment?.amount || 0,
-              status: upfrontResult.data.upfrontPayment?.status || 'paid',
-              paidAt: upfrontResult.data.upfrontPayment?.paidAt || new Date()
-            },
-            finalPayment: {
-              amount: memberPayment?.finalPayment?.amount || 0,
-              status: finalResult.data.finalPayment?.status || 'paid',
-              paidAt: finalResult.data.finalPayment?.paidAt || new Date()
-            },
-            totalAmount: (memberPayment?.upfrontPayment?.amount || 0) + (memberPayment?.finalPayment?.amount || 0),
-            currency: confirmedTrip.paymentInfo.currency,
-            overallPaymentStatus: 'completed'
-          },
-          tripActivated: upfrontResult.data.tripActivated || finalResult.data.tripActivated || false
-        }
+        data: result.data
       });
     } catch (error) {
       logger.error('Error in completeFullPayment:', error);

@@ -1030,7 +1030,7 @@ class PoolingConfirmService {
 
       await confirmedTrip.save();
 
-      // Check if all members have completed upfront payment
+      // Check if all members have completed upfront payment (for logging only, don't activate)
       const allUpfrontPaymentsCompleted = confirmedTrip.paymentInfo.memberPayments.every(
         mp => mp.upfrontPayment.status === 'paid'
       );
@@ -1046,8 +1046,7 @@ class PoolingConfirmService {
         });
         await confirmedTrip.save();
         
-        // Optionally notify members about final payment
-        logger.info(`📧 Sending final payment reminders...`);
+        logger.info(`📧 Final payment still required from all members`);
       }
 
       logger.info(`✅ Upfront payment completed for user ${userId}`);
@@ -1139,13 +1138,14 @@ class PoolingConfirmService {
 
       await confirmedTrip.save();
 
-      // Check if all members have completed both payments
+      // Check if all members have completed both payments (for logging only, don't activate here)
       const allPaymentsCompleted = confirmedTrip.paymentInfo.memberPayments.every(
         mp => mp.upfrontPayment.status === 'paid' && mp.finalPayment.status === 'paid'
       );
       
       if (allPaymentsCompleted) {
-        logger.info(`✅ All payments (upfront + final) completed for trip ${tripId}. Activating trip.`);
+        logger.info(`✅ All payments (upfront + final) completed for trip ${tripId}.`);
+        logger.warn(`⚠️ Trip activation should be triggered via completeFullPayment endpoint, not individual payment completion.`);
         
         // Update trip status to payment_completed
         confirmedTrip.status = 'payment_completed';
@@ -1155,8 +1155,8 @@ class PoolingConfirmService {
         });
         await confirmedTrip.save();
         
-        // Send activation request to active-trip service
-        await this.activateTrip(confirmedTrip.tripId);
+        // DON'T activate trip here - let completeFullPayment handle it
+        logger.info(`ℹ️ Trip activation deferred to completeFullPayment workflow`);
       }
 
       logger.info(`✅ Final payment completed for user ${userId}`);
@@ -1180,6 +1180,170 @@ class PoolingConfirmService {
 
     } catch (error) {
       logger.error(`Error completing final payment for user ${userId} in trip ${tripId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete BOTH upfront and final payments atomically for a user
+   * This prevents race conditions where trip activation happens between payments
+   */
+  async completeFullPayment(tripId, userId) {
+    try {
+      logger.info(`🔥 ATOMIC FULL PAYMENT for user ${userId} in trip ${tripId}`);
+
+      // Try to find confirmed trip by tripId (UUID) or by _id (MongoDB ObjectId)
+      let confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+      
+      if (!confirmedTrip) {
+        logger.info(`Trip not found by tripId, trying as confirmedTripId (MongoDB ObjectId)...`);
+        confirmedTrip = await ConfirmedTrip.findById(tripId);
+      }
+      
+      if (!confirmedTrip) {
+        throw new Error(`No confirmed trip found for tripId or confirmedTripId: ${tripId}`);
+      }
+      
+      logger.info(`✅ Found confirmed trip: ${confirmedTrip._id} (UUID: ${confirmedTrip.tripId})`);
+
+      // Check if user is a member
+      if (!confirmedTrip.memberIds.includes(userId)) {
+        throw new Error(`User ${userId} is not a member of trip ${tripId}`);
+      }
+
+      // Find member payment info
+      const memberPayment = confirmedTrip.paymentInfo.memberPayments.find(mp => mp.userId === userId);
+      if (!memberPayment) {
+        throw new Error(`No payment info found for user ${userId} in trip ${tripId}`);
+      }
+
+      // Get member details
+      const memberDetails = confirmedTrip.members.find(m => m.userId === userId) || {};
+
+      // Check if both payments are already completed
+      if (memberPayment.upfrontPayment.status === 'paid' && memberPayment.finalPayment.status === 'paid') {
+        throw new Error(`Both payments already completed for user ${userId}`);
+      }
+
+      // Get payment amounts
+      const upfrontAmount = confirmedTrip.paymentInfo.phases.upfront.amount;
+      const finalAmount = confirmedTrip.paymentInfo.phases.final.amount;
+      
+      const upfrontPaymentId = `upfront_${Date.now()}_${userId.substring(0, 8)}`;
+      const finalPaymentId = `final_${Date.now()}_${userId.substring(0, 8)}`;
+
+      // Update UPFRONT payment status (if not already paid)
+      if (memberPayment.upfrontPayment.status !== 'paid') {
+        confirmedTrip.updatePaymentStatus(userId, 'upfront', upfrontPaymentId, 'paid', upfrontAmount, {
+          completedAt: new Date(),
+          method: 'manual_completion',
+          gateway: 'payhere'
+        });
+        
+        confirmedTrip.addAction(userId, 'UPFRONT_PAYMENT_COMPLETED', {
+          phase: 'upfront',
+          amount: upfrontAmount,
+          paymentId: upfrontPaymentId
+        });
+        
+        logger.info(`✅ Upfront payment completed for user ${userId}`);
+      } else {
+        logger.info(`ℹ️ Upfront payment already completed for user ${userId}`);
+      }
+
+      // Update FINAL payment status (if not already paid)
+      if (memberPayment.finalPayment.status !== 'paid') {
+        confirmedTrip.updatePaymentStatus(userId, 'final', finalPaymentId, 'paid', finalAmount, {
+          completedAt: new Date(),
+          method: 'manual_completion',
+          gateway: 'payhere'
+        });
+        
+        confirmedTrip.addAction(userId, 'FINAL_PAYMENT_COMPLETED', {
+          phase: 'final',
+          amount: finalAmount,
+          paymentId: finalPaymentId
+        });
+        
+        logger.info(`✅ Final payment completed for user ${userId}`);
+      } else {
+        logger.info(`ℹ️ Final payment already completed for user ${userId}`);
+      }
+
+      // Save changes ONCE
+      await confirmedTrip.save();
+
+      // NOW check if all members have completed both payments
+      const allPaymentsCompleted = confirmedTrip.paymentInfo.memberPayments.every(
+        mp => mp.upfrontPayment.status === 'paid' && mp.finalPayment.status === 'paid'
+      );
+      
+      let tripActivated = false;
+      
+      if (allPaymentsCompleted) {
+        logger.info(`✅ All payments (upfront + final) completed for trip ${tripId}. Activating trip.`);
+        
+        // Update trip status to payment_completed
+        confirmedTrip.status = 'payment_completed';
+        confirmedTrip.addAction('SYSTEM', 'ALL_PAYMENTS_COMPLETED', {
+          memberCount: confirmedTrip.memberIds.length,
+          totalAmount: confirmedTrip.paymentInfo.pricePerPerson * confirmedTrip.memberIds.length
+        });
+        await confirmedTrip.save();
+        
+        // Send activation request to active-trip service
+        try {
+          await this.activateTrip(confirmedTrip.tripId);
+          tripActivated = true;
+        } catch (activationError) {
+          logger.error(`Failed to activate trip, but payments completed:`, activationError);
+          // Don't throw error - payments are still completed
+        }
+      }
+
+      logger.info(`✅ FULL PAYMENT completed for user ${userId}`);
+
+      // Return comprehensive response with member details
+      return {
+        success: true,
+        message: 'Full payment (upfront + final) completed successfully',
+        data: {
+          tripId: confirmedTrip.tripId,
+          tripName: confirmedTrip.tripName,
+          groupName: confirmedTrip.groupName,
+          member: {
+            userId: userId,
+            email: memberDetails.email || '',
+            firstName: memberDetails.firstName || '',
+            lastName: memberDetails.lastName || '',
+            fullName: memberDetails.firstName && memberDetails.lastName 
+              ? `${memberDetails.firstName} ${memberDetails.lastName}` 
+              : memberDetails.email || userId,
+            nationality: memberDetails.nationality || '',
+            languages: memberDetails.languages || []
+          },
+          payment: {
+            upfrontPayment: {
+              amount: upfrontAmount,
+              status: 'paid',
+              paidAt: memberPayment.upfrontPayment.paidAt || new Date()
+            },
+            finalPayment: {
+              amount: finalAmount,
+              status: 'paid',
+              paidAt: memberPayment.finalPayment.paidAt || new Date()
+            },
+            totalAmount: upfrontAmount + finalAmount,
+            currency: confirmedTrip.paymentInfo.currency,
+            overallPaymentStatus: 'completed'
+          },
+          allPaymentsCompleted,
+          tripActivated
+        }
+      };
+
+    } catch (error) {
+      logger.error(`Error completing full payment for user ${userId} in trip ${tripId}:`, error);
       throw error;
     }
   }
