@@ -29,6 +29,90 @@ class PoolingConfirmService {
   }
 
   /**
+   * Check if user has any overlapping trips in the same time period
+   * @param {string} userId - User ID to check
+   * @param {Date} startDate - Trip start date
+   * @param {Date} endDate - Trip end date
+   * @param {string} excludeTripId - Trip ID to exclude from check (current trip)
+   * @returns {Object} - { hasOverlap: boolean, overlappingTrips: [] }
+   */
+  async checkUserTripOverlap(userId, startDate, endDate, excludeTripId = null) {
+    try {
+      logger.info(`Checking trip overlap for user ${userId} between ${startDate} and ${endDate}`);
+
+      const tripStartDate = new Date(startDate);
+      const tripEndDate = new Date(endDate);
+
+      // Find all confirmed trips where:
+      // 1. User is a member
+      // 2. Trip status is not cancelled
+      // 3. Trip dates overlap with the requested dates
+      // 4. Exclude the current trip if provided
+      const query = {
+        memberIds: userId,
+        status: { 
+          $nin: ['cancelled', 'completed'] 
+        },
+        $or: [
+          {
+            // Case 1: Existing trip starts during new trip period
+            tripStartDate: {
+              $gte: tripStartDate,
+              $lte: tripEndDate
+            }
+          },
+          {
+            // Case 2: Existing trip ends during new trip period
+            tripEndDate: {
+              $gte: tripStartDate,
+              $lte: tripEndDate
+            }
+          },
+          {
+            // Case 3: Existing trip completely encompasses new trip period
+            tripStartDate: { $lte: tripStartDate },
+            tripEndDate: { $gte: tripEndDate }
+          }
+        ]
+      };
+
+      // Exclude current trip if provided
+      if (excludeTripId) {
+        query.tripId = { $ne: excludeTripId };
+      }
+
+      const overlappingTrips = await ConfirmedTrip.find(query).select(
+        'tripId tripName groupName tripStartDate tripEndDate status members'
+      );
+
+      if (overlappingTrips.length > 0) {
+        logger.warn(`User ${userId} has ${overlappingTrips.length} overlapping trips`);
+        return {
+          hasOverlap: true,
+          overlappingTrips: overlappingTrips.map(trip => ({
+            tripId: trip.tripId,
+            tripName: trip.tripName,
+            groupName: trip.groupName,
+            startDate: trip.tripStartDate,
+            endDate: trip.tripEndDate,
+            status: trip.status
+          }))
+        };
+      }
+
+      logger.info(`No overlapping trips found for user ${userId}`);
+      return {
+        hasOverlap: false,
+        overlappingTrips: []
+      };
+
+    } catch (error) {
+      logger.error(`Error checking trip overlap for user ${userId}:`, error);
+      throw new Error(`Failed to check trip overlap: ${error.message}`);
+    }
+  }
+
+  /**
    * Initiate trip confirmation process
    * Called by group creator to start confirmation
    */
@@ -60,10 +144,50 @@ class PoolingConfirmService {
         throw new Error(`Insufficient members. Minimum ${confirmationData.minMembers || 2} required, current: ${currentMembers.length}`);
       }
 
-      // 5. Calculate confirmation deadline (default 48 hours)
+      // 5. Check for overlapping trips for all members
+      const tripStartDate = new Date(confirmationData.tripStartDate || groupDetails.startDate || Date.now());
+      const tripEndDate = new Date(confirmationData.tripEndDate || groupDetails.endDate || Date.now());
+      
+      logger.info(`Checking for overlapping trips for ${currentMembers.length} members`);
+      const membersWithOverlaps = [];
+      
+      for (const memberId of currentMembers) {
+        const overlapCheck = await this.checkUserTripOverlap(
+          memberId,
+          tripStartDate,
+          tripEndDate,
+          tripId // Exclude current trip
+        );
+        
+        if (overlapCheck.hasOverlap) {
+          // Find member details
+          const memberDetails = groupDetails.members.find(m => m.userId === memberId) || {};
+          membersWithOverlaps.push({
+            userId: memberId,
+            userName: memberDetails.firstName && memberDetails.lastName 
+              ? `${memberDetails.firstName} ${memberDetails.lastName}` 
+              : memberDetails.email || memberId,
+            email: memberDetails.email,
+            overlappingTrips: overlapCheck.overlappingTrips
+          });
+        }
+      }
+      
+      if (membersWithOverlaps.length > 0) {
+        logger.warn(`Cannot initiate confirmation: ${membersWithOverlaps.length} members have overlapping trips`);
+        throw new Error(
+          `Cannot initiate trip confirmation. ${membersWithOverlaps.length} member(s) have overlapping trips: ` +
+          membersWithOverlaps.map(m => `${m.userName || m.userId} (${m.overlappingTrips.length} overlap(s))`).join(', ') +
+          '. Please resolve conflicts before proceeding.'
+        );
+      }
+      
+      logger.info(`No overlapping trips found for any members. Proceeding with confirmation.`);
+
+      // 6. Calculate confirmation deadline (default 48 hours)
       const confirmationDeadline = moment().add(confirmationData.confirmationHours || 48, 'hours').toDate();
       
-      // 6. Calculate payment deadlines and amounts
+      // 7. Calculate payment deadlines and amounts
       const upfrontDeadline = moment().add(confirmationData.upfrontPaymentHours || 48, 'hours').toDate();
       const finalDeadline = moment(confirmationData.tripStartDate).subtract(confirmationData.finalPaymentDaysBefore || 7, 'days').toDate();
       
@@ -71,7 +195,7 @@ class PoolingConfirmService {
       const upfrontAmount = Math.round(pricePerPerson * 0.5); // 50%
       const finalAmount = pricePerPerson - upfrontAmount; // Remaining amount
       
-      // 7. Create confirmed trip entry
+      // 8. Create confirmed trip entry
       const confirmedTrip = new ConfirmedTrip({
         tripId, // Use the actual tripId from the frontend
         groupId: groupDetails._id, // Use the group's _id from MongoDB
@@ -79,6 +203,7 @@ class PoolingConfirmService {
         groupName: groupDetails.groupName || 'Travel Group',
         creatorUserId: groupDetails.userIds[0], // First user is considered creator
         memberIds: currentMembers,
+        members: groupDetails.members || [], // Store full member details
         currentMemberCount: currentMembers.length,
         minMembers: confirmationData.minMembers || 2,
         maxMembers: confirmationData.maxMembers || groupDetails.maxGroupSize || 12,
@@ -109,21 +234,31 @@ class PoolingConfirmService {
               status: 'pending'
             }
           },
-          memberPayments: currentMembers.map(memberId => ({
-            userId: memberId,
-            userEmail: '', // Will be populated later
-            userName: '', // Will be populated later
-            upfrontPayment: {
-              amount: upfrontAmount,
-              status: 'pending'
-            },
-            finalPayment: {
-              amount: finalAmount,
-              status: 'pending'
-            },
-            overallPaymentStatus: 'pending',
-            totalPaid: 0
-          }))
+          memberPayments: currentMembers.map(memberId => {
+            // Find the full member details from the members array
+            const memberDetails = groupDetails.members.find(m => m.userId === memberId) || {};
+            return {
+              userId: memberId,
+              userEmail: memberDetails.email || '',
+              userName: memberDetails.firstName && memberDetails.lastName 
+                ? `${memberDetails.firstName} ${memberDetails.lastName}` 
+                : '',
+              firstName: memberDetails.firstName || '',
+              lastName: memberDetails.lastName || '',
+              nationality: memberDetails.nationality || '',
+              languages: memberDetails.languages || [],
+              upfrontPayment: {
+                amount: upfrontAmount,
+                status: 'pending'
+              },
+              finalPayment: {
+                amount: finalAmount,
+                status: 'pending'
+              },
+              overallPaymentStatus: 'pending',
+              totalPaid: 0
+            };
+          })
         },
         memberConfirmations: currentMembers.map(memberId => ({
           userId: memberId,
@@ -132,7 +267,7 @@ class PoolingConfirmService {
         }))
       });
 
-      // 7. Add initial action
+      // 9. Add initial action
       confirmedTrip.addAction(userId, 'INITIATE_CONFIRMATION', {
         memberCount: currentMembers.length,
         confirmationDeadline,
@@ -141,7 +276,7 @@ class PoolingConfirmService {
 
       await confirmedTrip.save();
 
-      // 8. Send confirmation notifications to all members
+      // 10. Send confirmation notifications to all members
       await this.sendConfirmationNotifications(confirmedTrip);
 
       logger.info(`Trip confirmation initiated successfully for tripId ${tripId}, groupId ${confirmedTrip.groupId}`);
@@ -189,6 +324,35 @@ class PoolingConfirmService {
       if (new Date() > confirmedTrip.confirmationDeadline) {
         throw new Error('Confirmation deadline has passed');
       }
+
+      // Check for overlapping trips for this user
+      logger.info(`Checking for overlapping trips for user ${userId}`);
+      const overlapCheck = await this.checkUserTripOverlap(
+        userId,
+        confirmedTrip.tripStartDate,
+        confirmedTrip.tripEndDate,
+        confirmedTrip.tripId // Exclude current trip
+      );
+      
+      if (overlapCheck.hasOverlap) {
+        const memberDetails = confirmedTrip.members.find(m => m.userId === userId) || {};
+        const userName = memberDetails.firstName && memberDetails.lastName 
+          ? `${memberDetails.firstName} ${memberDetails.lastName}` 
+          : memberDetails.email || userId;
+        
+        logger.warn(`User ${userId} has overlapping trips, cannot confirm participation`);
+        
+        const overlapDetails = overlapCheck.overlappingTrips.map(trip => 
+          `"${trip.tripName}" (${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()})`
+        ).join(', ');
+        
+        throw new Error(
+          `Cannot confirm participation. You have ${overlapCheck.overlappingTrips.length} overlapping trip(s): ${overlapDetails}. ` +
+          `Please cancel or modify conflicting trips before confirming this one.`
+        );
+      }
+      
+      logger.info(`No overlapping trips found for user ${userId}. Proceeding with confirmation.`);
 
       // Add confirmation
       confirmedTrip.addMemberConfirmation(userId);
@@ -486,6 +650,7 @@ class PoolingConfirmService {
         tripId: group.tripId,
         groupName: group.groupName,
         userIds: group.userIds,
+        members: group.members || [], // Include full member details
         tripName: group.tripName || `Trip ${group.tripId}`,
         destination: group.destination || 'Unknown',
         startDate: group.startDate,
