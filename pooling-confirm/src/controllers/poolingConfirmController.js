@@ -826,6 +826,143 @@ class PoolingConfirmController {
       });
     }
   }
+
+  /**
+   * GET /api/v1/pooling-confirm/initiated-trip/:tripId/summary
+   * Get initiated trip summary (days, cost per person, driver/guide status)
+   */
+  async getInitiatedTripSummary(req, res) {
+    try {
+      const { tripId } = req.params;
+
+      logger.info(`📋 Getting initiated trip summary for tripId: ${tripId}`);
+
+      // Validation
+      if (!tripId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trip ID is required'
+        });
+      }
+
+      // Connect to initiated_trips collection
+      const mongoose = require('mongoose');
+      const initiatedConn = await mongoose.createConnection(
+        'mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_trips?retryWrites=true&w=majority',
+        {
+          useNewUrlParser: true,
+          useUnifiedTopology: true
+        }
+      );
+
+      const initiatedTripSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'initiated_trips' });
+      const InitiatedTrip = initiatedConn.model('InitiatedTrip', initiatedTripSchema);
+
+      // Find the trip
+      let initiatedTrip = await InitiatedTrip.findOne({ _id: tripId }).lean();
+      
+      if (!initiatedTrip) {
+        // Try using tripId field if _id doesn't match
+        initiatedTrip = await InitiatedTrip.findOne({ tripId: tripId }).lean();
+      }
+
+      await initiatedConn.close();
+
+      if (!initiatedTrip) {
+        return res.status(404).json({
+          success: false,
+          message: 'Initiated trip not found',
+          tripId
+        });
+      }
+
+      // Calculate number of days
+      const startDate = new Date(initiatedTrip.startDate);
+      const endDate = new Date(initiatedTrip.endDate);
+      const numberOfDays = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
+
+      // Get driver and guide costs
+      const driverCost = initiatedTrip.averageDriverCost || 0;
+      const guideCost = initiatedTrip.averageGuideCost || 0;
+      const totalCost = driverCost + guideCost;
+
+      // Get max members from pooling group (we'll need to fetch this)
+      const groupConn = await mongoose.createConnection(
+        'mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_pooling?retryWrites=true&w=majority',
+        {
+          useNewUrlParser: true,
+          useUnifiedTopology: true
+        }
+      );
+      
+      const groupSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'groups' });
+      const Group = groupConn.model('Group', groupSchema);
+      
+      let group = await Group.findOne({ tripId: tripId }).lean();
+      await groupConn.close();
+
+      const maxMembers = group?.maxMembers || group?.maxParticipants || 1;
+      const costPerPerson = Math.ceil(totalCost / maxMembers);
+
+      // Determine driver/guide status
+      const driverStatus = initiatedTrip.driverNeeded === 1 
+        ? (initiatedTrip.driverAssigned ? 'Appointed' : 'Requested')
+        : 'Not Required';
+        
+      const guideStatus = initiatedTrip.guideNeeded === 1 
+        ? (initiatedTrip.guideAssigned ? 'Appointed' : 'Requested')
+        : 'Not Required';
+
+      // Format currency (assuming LKR for now, can be extended)
+      const currency = initiatedTrip.currency || 'LKR';
+      const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : 'Rs. ';
+
+      logger.info(`✅ Trip summary retrieved for ${tripId}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Initiated trip summary retrieved successfully',
+        data: {
+          tripId: tripId,
+          tripName: initiatedTrip.tripName,
+          numberOfDays: numberOfDays,
+          costPerPerson: costPerPerson,
+          currency: currency,
+          currencySymbol: currencySymbol,
+          formattedCostPerPerson: `${currencySymbol}${costPerPerson.toLocaleString()}`,
+          driver: {
+            status: driverStatus,
+            needed: initiatedTrip.driverNeeded === 1,
+            cost: driverCost
+          },
+          guide: {
+            status: guideStatus,
+            needed: initiatedTrip.guideNeeded === 1,
+            cost: guideCost
+          },
+          dates: {
+            start: initiatedTrip.startDate,
+            end: initiatedTrip.endDate,
+            arrivalTime: initiatedTrip.arrivalTime
+          },
+          summary: {
+            days: `${numberOfDays} day${numberOfDays > 1 ? 's' : ''}`,
+            costPerParticipant: `${currencySymbol}${costPerPerson.toFixed(2)}`,
+            driver: driverStatus,
+            guide: guideStatus
+          }
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error in getInitiatedTripSummary:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error',
+        errorType: 'INTERNAL_ERROR'
+      });
+    }
+  }
 }
 
 module.exports = new PoolingConfirmController();
