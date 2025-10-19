@@ -69,7 +69,7 @@ class PoolingConfirmController {
       const startDate = new Date(initiatedTrip.startDate);
       const endDate = new Date(initiatedTrip.endDate);
       const numberOfDays = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1);
-      const totalCost = (averageTripDistance * averageDriverCost) + (numberOfDays * averageGuideCost);
+      const totalCost = (averageDriverCost + averageGuideCost);
       const maxMembers = group.maxMembers || group.maxParticipants || confirmationData.maxMembers || 1;
       const pricePerPerson = Math.ceil(totalCost / maxMembers);
 
@@ -487,6 +487,10 @@ class PoolingConfirmController {
           logger.warn(`Could not fetch initiated trip for tripId ${trip.tripId}: ${e.message}`);
         }
         const userConfirmation = trip.memberConfirmations.find(mc => mc.userId === userId);
+        
+        // Get current user's member details
+        const currentUserDetails = trip.members?.find(m => m.userId === userId) || {};
+        
         return {
           // Basic Trip Information
           _id: trip._id,
@@ -499,6 +503,7 @@ class PoolingConfirmController {
           // User and Member Information
           creatorUserId: trip.creatorUserId,
           memberIds: trip.memberIds,
+          members: trip.members || [], // ✨ Complete member details array
           currentMemberCount: trip.currentMemberCount,
           minMembers: trip.minMembers,
           maxMembers: trip.maxMembers,
@@ -544,6 +549,23 @@ class PoolingConfirmController {
           userPaymentStatus: userConfirmation?.paymentStatus,
           isCreator: trip.creatorUserId === userId,
           userPayment: trip.paymentInfo.memberPayments.find(mp => mp.userId === userId),
+          
+          // ✨ Current user's complete member details
+          currentUserDetails: {
+            userId: currentUserDetails.userId || userId,
+            email: currentUserDetails.email || '',
+            firstName: currentUserDetails.firstName || '',
+            lastName: currentUserDetails.lastName || '',
+            fullName: currentUserDetails.firstName && currentUserDetails.lastName 
+              ? `${currentUserDetails.firstName} ${currentUserDetails.lastName}` 
+              : '',
+            nationality: currentUserDetails.nationality || '',
+            languages: currentUserDetails.languages || [],
+            dob: currentUserDetails.dob || '',
+            profileCompletion: currentUserDetails.profileCompletion || 0,
+            joinedAt: currentUserDetails.joinedAt || null,
+            isCreator: currentUserDetails.isCreator || false
+          },
 
           // Legacy fields for backward compatibility
           memberCount: trip.currentMemberCount,
@@ -749,24 +771,118 @@ class PoolingConfirmController {
     try {
       const { tripId } = req.params;
       const { userId } = req.body;
-      logger.info(`Complete FULL payment request for tripId: ${tripId}, userId: ${userId}`);
+      
+      logger.info(`🔍 COMPLETE FULL PAYMENT REQUEST:`);
+      logger.info(`📋 TripId: ${tripId}`);
+      logger.info(`📋 UserId: ${userId}`);
+
+      // Validation
+      if (!tripId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trip ID is required'
+        });
+      }
+
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+      }
+
+      // Get the confirmed trip first to access member details
+      const ConfirmedTrip = require('../models/ConfirmedTrip');
+      const confirmedTrip = await ConfirmedTrip.findOne({ tripId });
+
+      if (!confirmedTrip) {
+        return res.status(404).json({
+          success: false,
+          message: 'No confirmed trip found for this tripId',
+          tripId
+        });
+      }
+
+      // Check if user is a member
+      if (!confirmedTrip.memberIds.includes(userId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'User is not a member of this trip'
+        });
+      }
+
+      // Get member details
+      const memberDetails = confirmedTrip.members.find(m => m.userId === userId) || {};
+      const memberPayment = confirmedTrip.paymentInfo.memberPayments.find(mp => mp.userId === userId);
+
+      logger.info(`✅ Found member: ${memberDetails.firstName} ${memberDetails.lastName}`);
+
       // Complete upfront payment
       const upfrontResult = await poolingConfirmService.completePayment(tripId, userId);
+      
       // Complete final payment
       const finalResult = await poolingConfirmService.completeFinalPayment(tripId, userId);
+
+      // Prepare response with member details
       res.status(200).json({
         success: true,
         message: 'Full payment (upfront + final) completed successfully',
         data: {
-          upfront: upfrontResult.data,
-          final: finalResult.data
+          tripId: confirmedTrip.tripId,
+          tripName: confirmedTrip.tripName,
+          groupName: confirmedTrip.groupName,
+          member: {
+            userId: userId,
+            email: memberDetails.email || '',
+            firstName: memberDetails.firstName || '',
+            lastName: memberDetails.lastName || '',
+            fullName: memberDetails.firstName && memberDetails.lastName 
+              ? `${memberDetails.firstName} ${memberDetails.lastName}` 
+              : memberDetails.email || userId,
+            nationality: memberDetails.nationality || '',
+            languages: memberDetails.languages || []
+          },
+          payment: {
+            upfrontPayment: {
+              amount: memberPayment?.upfrontPayment?.amount || 0,
+              status: upfrontResult.data.upfrontPayment?.status || 'paid',
+              paidAt: upfrontResult.data.upfrontPayment?.paidAt || new Date()
+            },
+            finalPayment: {
+              amount: memberPayment?.finalPayment?.amount || 0,
+              status: finalResult.data.finalPayment?.status || 'paid',
+              paidAt: finalResult.data.finalPayment?.paidAt || new Date()
+            },
+            totalAmount: (memberPayment?.upfrontPayment?.amount || 0) + (memberPayment?.finalPayment?.amount || 0),
+            currency: confirmedTrip.paymentInfo.currency,
+            overallPaymentStatus: 'completed'
+          },
+          tripActivated: upfrontResult.data.tripActivated || finalResult.data.tripActivated || false
         }
       });
     } catch (error) {
       logger.error('Error in completeFullPayment:', error);
-      res.status(500).json({
+      
+      // Determine HTTP status code based on specific error types
+      let statusCode = 500;
+      
+      if (error.message.includes('No confirmed trip found') || error.message.includes('not found')) {
+        statusCode = 404;
+      } else if (error.message.includes('not a member') || error.message.includes('Unauthorized')) {
+        statusCode = 403;
+      } else if (error.message.includes('already completed') || error.message.includes('No pending payment')) {
+        statusCode = 409;
+      } else if (error.message.includes('Failed to activate trip')) {
+        statusCode = 502;
+      }
+      
+      res.status(statusCode).json({
         success: false,
-        message: error.message || 'Internal server error'
+        message: error.message || 'Internal server error',
+        errorType: statusCode === 404 ? 'TRIP_NOT_FOUND' :
+                   statusCode === 403 ? 'UNAUTHORIZED' :
+                   statusCode === 409 ? 'PAYMENT_CONFLICT' :
+                   statusCode === 502 ? 'EXTERNAL_SERVICE_ERROR' : 'INTERNAL_ERROR'
       });
     }
   }
