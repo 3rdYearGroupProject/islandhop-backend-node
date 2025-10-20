@@ -63,6 +63,8 @@ const updatePaymentStatus = async (req, res) => {
     console.log('✅ POST /payment/:role/:tripId route was accessed!');
     const { role, tripId } = req.params;
 
+    console.log(`🔍 Updating payment for role: ${role}, tripId: ${tripId}`);
+
     // Validate role parameter
     if (!['drivers', 'guides'].includes(role)) {
       return res.status(400).json({
@@ -87,30 +89,71 @@ const updatePaymentStatus = async (req, res) => {
       });
     }
 
-    // Select the appropriate model based on role
-    const PaymentModel = role === 'drivers' ? DriversPayment : GuidesPayment;
-
-    // Find the payment record by tripId
-    const paymentRecord = await PaymentModel.findOne({ tripId });
-
-    if (!paymentRecord) {
-      return res.status(404).json({
+    // Ensure we're using the existing connection
+    if (mongoose.connection.readyState !== 1) {
+      console.log('❌ MongoDB connection not ready. Connection state:', mongoose.connection.readyState);
+      return res.status(500).json({
         success: false,
-        message: `Payment record not found for trip ID: ${tripId} in ${role} collection`
+        message: 'Database connection not ready'
       });
     }
 
+    // Get the database connection and verify we're connected to the right database
+    const db = mongoose.connection.db;
+    const databaseName = mongoose.connection.name;
+    
+    console.log(`📊 Connected to database: ${databaseName}`);
+
+    // Verify we're connected to the payment-service database
+    if (databaseName !== 'payment-service') {
+      console.log(`⚠️  Warning: Expected 'payment-service' database but connected to '${databaseName}'`);
+      return res.status(500).json({
+        success: false,
+        message: `Connected to wrong database: ${databaseName}. Expected: payment-service`
+      });
+    }
+
+    // Get the correct collection name based on role
+    const collectionName = role; // 'drivers' or 'guides'
+    console.log(`📊 Querying collection: ${collectionName} in database: ${databaseName}`);
+
+    // Get the collection
+    const collection = db.collection(collectionName);
+
+    // Find the payment record by tripId
+    console.log(`🔍 Looking for tripId: ${tripId} in ${collectionName} collection`);
+    const paymentRecord = await collection.findOne({ tripId: tripId });
+
+    if (!paymentRecord) {
+      console.log(`❌ Payment record not found for tripId: ${tripId}`);
+      
+      // Debug: Let's see what records exist
+      const allRecords = await collection.find({}).limit(5).toArray();
+      console.log(`📊 Sample records in ${collectionName} collection:`, allRecords.map(r => ({ tripId: r.tripId, _id: r._id })));
+      
+      return res.status(404).json({
+        success: false,
+        message: `Payment record not found for trip ID: ${tripId} in ${collectionName} collection`
+      });
+    }
+
+    console.log(`✅ Found payment record:`, JSON.stringify(paymentRecord, null, 2));
+
     // Update the payment record
     const evidencePath = `/uploads/${req.file.filename}`;
-    const updatedPayment = await PaymentModel.findOneAndUpdate(
-      { tripId },
+    const updatedPayment = await collection.findOneAndUpdate(
+      { tripId: tripId },
       {
-        paid: 1,
-        evidence: evidencePath,
-        updatedAt: new Date()
+        $set: {
+          paid: 1,
+          evidence: evidencePath,
+          updatedAt: new Date()
+        }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
+
+    console.log(`✅ Payment updated successfully for tripId: ${tripId}`);
 
     res.status(200).json({
       success: true,
@@ -126,7 +169,7 @@ const updatePaymentStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating payment status:', error);
+    console.error('❌ Error updating payment status:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -140,6 +183,8 @@ const getPaymentDetails = async (req, res) => {
   try {
     console.log('✅ GET /payment/:role/:tripId route was accessed!');
     const { role, tripId } = req.params;
+
+    console.log(`🔍 Getting payment details for role: ${role}, tripId: ${tripId}`);
 
     // Validate role parameter
     if (!['drivers', 'guides'].includes(role)) {
@@ -157,18 +202,55 @@ const getPaymentDetails = async (req, res) => {
       });
     }
 
-    // Select the appropriate model based on role
-    const PaymentModel = role === 'drivers' ? DriversPayment : GuidesPayment;
-
-    // Find the payment record
-    const paymentRecord = await PaymentModel.findOne({ tripId });
-
-    if (!paymentRecord) {
-      return res.status(404).json({
+    // Ensure we're using the existing connection
+    if (mongoose.connection.readyState !== 1) {
+      console.log('❌ MongoDB connection not ready. Connection state:', mongoose.connection.readyState);
+      return res.status(500).json({
         success: false,
-        message: `Payment record not found for trip ID: ${tripId} in ${role} collection`
+        message: 'Database connection not ready'
       });
     }
+
+    // Get the database connection and verify we're connected to the right database
+    const db = mongoose.connection.db;
+    const databaseName = mongoose.connection.name;
+    
+    console.log(`📊 Connected to database: ${databaseName}`);
+
+    // Verify we're connected to the payment-service database
+    if (databaseName !== 'payment-service') {
+      console.log(`⚠️  Warning: Expected 'payment-service' database but connected to '${databaseName}'`);
+      return res.status(500).json({
+        success: false,
+        message: `Connected to wrong database: ${databaseName}. Expected: payment-service`
+      });
+    }
+
+    // Get the correct collection name based on role
+    const collectionName = role; // 'drivers' or 'guides'
+    console.log(`📊 Querying collection: ${collectionName} in database: ${databaseName}`);
+
+    // Get the collection
+    const collection = db.collection(collectionName);
+
+    // Find the payment record by tripId
+    console.log(`🔍 Looking for tripId: ${tripId} in ${collectionName} collection`);
+    const paymentRecord = await collection.findOne({ tripId: tripId });
+
+    if (!paymentRecord) {
+      console.log(`❌ Payment record not found for tripId: ${tripId}`);
+      
+      // Debug: Let's see what records exist
+      const allRecords = await collection.find({}).limit(5).toArray();
+      console.log(`📊 Sample records in ${collectionName} collection:`, allRecords.map(r => ({ tripId: r.tripId, _id: r._id })));
+      
+      return res.status(404).json({
+        success: false,
+        message: `Payment record not found for trip ID: ${tripId} in ${collectionName} collection`
+      });
+    }
+
+    console.log(`✅ Found payment record:`, JSON.stringify(paymentRecord, null, 2));
 
     res.status(200).json({
       success: true,
@@ -177,7 +259,7 @@ const getPaymentDetails = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error retrieving payment details:', error);
+    console.error('❌ Error retrieving payment details:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -266,20 +348,37 @@ const getAllPayments = async (req, res) => {
       });
     }
 
+    // Ensure we're using the existing connection
+    if (mongoose.connection.readyState !== 1) {
+      console.log('❌ MongoDB connection not ready. Connection state:', mongoose.connection.readyState);
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection not ready'
+      });
+    }
+
     // Get the database connection and verify we're connected to the right database
     const db = mongoose.connection.db;
     const databaseName = mongoose.connection.name;
     
     console.log(`📊 Connected to database: ${databaseName}`);
-    console.log(`📊 Querying collection: ${role} in database: ${databaseName}`);
+    console.log(`📊 Connection state: ${mongoose.connection.readyState}`);
 
-    // Verify we're connected to the payment_service database
-    if (databaseName !== 'payment_service') {
-      console.log(`⚠️  Warning: Expected 'payment_service' database but connected to '${databaseName}'`);
+    // Verify we're connected to the payment-service database
+    if (databaseName !== 'payment-service') {
+      console.log(`⚠️  Warning: Expected 'payment-service' database but connected to '${databaseName}'`);
+      return res.status(500).json({
+        success: false,
+        message: `Connected to wrong database: ${databaseName}. Expected: payment-service`
+      });
     }
 
+    // Get the correct collection name based on role (matching your actual collections)
+    const collectionName = role === 'drivers' ? 'drivers' : 'guides';
+    console.log(`📊 Querying collection: ${collectionName} in database: ${databaseName}`);
+
     // Get the collection
-    const collection = db.collection(role); // 'drivers' or 'guides'
+    const collection = db.collection(collectionName);
 
     // List all available collections for debugging
     const collections = await db.listCollections().toArray();
@@ -291,7 +390,7 @@ const getAllPayments = async (req, res) => {
       paid: { $gt: 0 } 
     }).sort({ createdAt: -1 }).toArray();
     
-    console.log(`✅ Found ${paidTransactions.length} paid transactions for ${role} in ${databaseName} database`);
+    console.log(`✅ Found ${paidTransactions.length} paid transactions for ${role} in ${collectionName} collection`);
     
     if (paidTransactions.length > 0) {
       console.log(`📄 First paid transaction:`, JSON.stringify(paidTransactions[0], null, 2));
@@ -300,7 +399,7 @@ const getAllPayments = async (req, res) => {
       
       // Also check total documents in the collection for debugging
       const totalDocs = await collection.countDocuments({});
-      console.log(`📊 Total documents in ${role} collection: ${totalDocs}`);
+      console.log(`📊 Total documents in ${collectionName} collection: ${totalDocs}`);
       
       if (totalDocs > 0) {
         const sampleDoc = await collection.findOne({});
@@ -310,9 +409,10 @@ const getAllPayments = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `All ${role} paid transactions retrieved successfully from ${databaseName} database`,
+      message: `All ${role} paid transactions retrieved successfully from ${collectionName} collection`,
       count: paidTransactions.length,
       database: databaseName,
+      collection: collectionName,
       data: paidTransactions
     });
 
