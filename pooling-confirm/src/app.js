@@ -309,7 +309,7 @@ app.use("*", (req, res) => {
 // Global error handler (must be last middleware)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 8071;
+const PORT = process.env.PORT || 8074;
 const HOST = process.env.HOST || "0.0.0.0";
 
 const server = app.listen(PORT, HOST, () => {
