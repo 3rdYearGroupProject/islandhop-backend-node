@@ -198,3 +198,9 @@
 [2025-10-19T10:50:57.538Z] Verification service started.
 [2025-10-19T10:58:16.158Z] Verification service started.
 2025-10-19T11:06:55.917Z - Fetched drivers with filters: {}
+[2025-10-20T04:37:01.426Z] Verification service started.
+[2025-10-20T04:41:48.593Z] Verification service started.
+[2025-10-20T04:43:58.840Z] Verification service started.
+[2025-10-20T04:46:10.426Z] Incoming request: GET /health
+[2025-10-20T08:21:47.185Z] Incoming request: GET /health
+[2025-10-20T08:22:07.591Z] Incoming request: GET /health
