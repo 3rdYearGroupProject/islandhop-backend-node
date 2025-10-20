@@ -1,6 +1,7 @@
 const poolingConfirmService = require('../services/poolingConfirmService');
 const logger = require('../config/logger');
 const Joi = require('joi');
+const { getInitiatedTripModel, getGroupModel } = require('../config/externalConnections');
 
 class PoolingConfirmController {
   
@@ -38,27 +39,16 @@ class PoolingConfirmController {
 
       const { tripId, groupId, userId, ...confirmationData } = value;
 
-      // Fetch initiated trip from MongoDB Atlas
-      const mongoose = require('mongoose');
-      const initiatedConn = await mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_trips?retryWrites=true&w=majority', {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-      });
-      const initiatedTripSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'initiated_trips' });
-      const InitiatedTrip = initiatedConn.model('InitiatedTrip', initiatedTripSchema);
+      // Fetch initiated trip using connection pool
+      const InitiatedTrip = await getInitiatedTripModel();
       let initiatedTrip = await InitiatedTrip.findOne({ _id: tripId }).lean();
       if (!initiatedTrip) {
         initiatedTrip = await InitiatedTrip.findOne({ tripId: tripId }).lean();
       }
       if (!initiatedTrip) throw new Error('Initiated trip does not exist');
 
-      // Fetch group from islandhop_pooling.groups
-      const groupConn = await mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_pooling?retryWrites=true&w=majority', {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-      });
-      const groupSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'groups' });
-      const Group = groupConn.model('Group', groupSchema);
+      // Fetch group using connection pool
+      const Group = await getGroupModel();
       let group = await Group.findOne({ tripId: tripId }).lean();
       if (!group) throw new Error('Group does not exist');
 
@@ -87,9 +77,6 @@ class PoolingConfirmController {
 
       // Use groupId from group
       const result = await poolingConfirmService.initiateConfirmation(tripId, userId, confirmationDataWithPayment);
-
-      await initiatedConn.close();
-      await groupConn.close();
 
       res.status(201).json({
         success: true,
@@ -462,16 +449,8 @@ class PoolingConfirmController {
 
       logger.info(`📋 Found ${trips.length} trips out of ${total} total for user ${userId}`);
 
-      // MongoDB Atlas connection for initiated_trips
-      const mongoose = require('mongoose');
-      const initiatedConn = await mongoose.createConnection('mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_trips?retryWrites=true&w=majority', {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-      });
-      const initiatedTripSchema = new mongoose.Schema({
-        _id: String
-      }, { strict: false, collection: 'initiated_trips' });
-      const InitiatedTrip = initiatedConn.model('InitiatedTrip', initiatedTripSchema);
+      // Use connection pool for initiated_trips
+      const InitiatedTrip = await getInitiatedTripModel();
 
       // Fetch initiated trip data for each confirmed trip
       const tripsWithInitiatedData = await Promise.all(trips.map(async trip => {
@@ -579,9 +558,6 @@ class PoolingConfirmController {
           initiatedTripCreatorUserId: initiatedTrip?.userId || null
         };
       }));
-
-      // Close the initiated trip connection
-      await initiatedConn.close();
 
       res.status(200).json({
         success: true,
@@ -845,18 +821,8 @@ class PoolingConfirmController {
         });
       }
 
-      // Connect to initiated_trips collection
-      const mongoose = require('mongoose');
-      const initiatedConn = await mongoose.createConnection(
-        'mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_trips?retryWrites=true&w=majority',
-        {
-          useNewUrlParser: true,
-          useUnifiedTopology: true
-        }
-      );
-
-      const initiatedTripSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'initiated_trips' });
-      const InitiatedTrip = initiatedConn.model('InitiatedTrip', initiatedTripSchema);
+      // Use connection pool for initiated_trips
+      const InitiatedTrip = await getInitiatedTripModel();
 
       // Find the trip
       let initiatedTrip = await InitiatedTrip.findOne({ _id: tripId }).lean();
@@ -865,8 +831,6 @@ class PoolingConfirmController {
         // Try using tripId field if _id doesn't match
         initiatedTrip = await InitiatedTrip.findOne({ tripId: tripId }).lean();
       }
-
-      await initiatedConn.close();
 
       if (!initiatedTrip) {
         return res.status(404).json({
@@ -886,20 +850,9 @@ class PoolingConfirmController {
       const guideCost = initiatedTrip.averageGuideCost || 0;
       const totalCost = driverCost + guideCost;
 
-      // Get max members from pooling group (we'll need to fetch this)
-      const groupConn = await mongoose.createConnection(
-        'mongodb+srv://2022cs056:dH4aTFn3IOerWlVZ@cluster0.9ccambx.mongodb.net/islandhop_pooling?retryWrites=true&w=majority',
-        {
-          useNewUrlParser: true,
-          useUnifiedTopology: true
-        }
-      );
-      
-      const groupSchema = new mongoose.Schema({ _id: String }, { strict: false, collection: 'groups' });
-      const Group = groupConn.model('Group', groupSchema);
-      
+      // Get max members from pooling group using connection pool
+      const Group = await getGroupModel();
       let group = await Group.findOne({ tripId: tripId }).lean();
-      await groupConn.close();
 
       const maxMembers = group?.maxMembers || group?.maxParticipants || 1;
       const costPerPerson = Math.ceil(totalCost / maxMembers);
