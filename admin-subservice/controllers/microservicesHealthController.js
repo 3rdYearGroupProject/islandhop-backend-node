@@ -18,12 +18,6 @@ const MICROSERVICES = [
     baseUrl: process.env.USER_SERVICE_URL,
   },
   {
-    name: "API Gateway",
-    port: 3000,
-    healthEndpoint: "/health",
-    baseUrl: process.env.API_GATEWAY_URL,
-  },
-  {
     name: "Route Service",
     port: 3001,
     healthEndpoint: "/health",
@@ -90,12 +84,6 @@ const MICROSERVICES = [
     baseUrl: process.env.COMPLETE_TRIP_SERVICE_URL,
   },
   {
-    name: "Verification Service",
-    port: 8060,
-    healthEndpoint: "/health",
-    baseUrl: process.env.VERIFICATION_SERVICE_URL,
-  },
-  {
     name: "Support Agent Service",
     port: 8061,
     healthEndpoint: "/health",
@@ -106,12 +94,6 @@ const MICROSERVICES = [
     port: 8062,
     healthEndpoint: "/health",
     baseUrl: process.env.PANIC_ALERTS_SERVICE_URL,
-  },
-  {
-    name: "Pooling Confirm Service",
-    port: 8074,
-    healthEndpoint: "/health",
-    baseUrl: process.env.POOLING_CONFIRM_SERVICE_URL,
   },
 ];
 
