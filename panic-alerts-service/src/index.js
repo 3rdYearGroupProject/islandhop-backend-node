@@ -1,21 +1,21 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import touristRouter from './routes/touristRoutes.js';
-import lostItemsRouter from './routes/lostItemsRoutes.js';
-import panicAlertsRouter from './routes/panicAlerts.js';
-import {connectDatabases} from './db.js';
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import touristRouter from "./routes/touristRoutes.js";
+import lostItemsRouter from "./routes/lostItemsRoutes.js";
+import panicAlertsRouter from "./routes/panicAlerts.js";
+import { connectDatabases } from "./db.js";
 
 dotenv.config();
 const app = express();
 
-app.use(cors(
-  {
-    origin: '*', // Allow all origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'] // Allowed headers
-  }
-));
+app.use(
+  cors({
+    origin: "*", // Allow all origins
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+  })
+);
 app.use(express.json());
 
 // Add request logging middleware for debugging
@@ -30,37 +30,47 @@ let dbConnections = null;
 async function initializeApp() {
   try {
     dbConnections = await connectDatabases();
-    console.log('✅ Database connections established');
-    
+    console.log("✅ Database connections established");
+
     // Make database connections available globally
     app.locals.dbConnections = dbConnections;
-    
-    app.use('/tourist', touristRouter);
-    app.use('/lost-items', lostItemsRouter);
-    app.use('/panic-alerts', panicAlertsRouter);
+
+    app.use("/tourist", touristRouter);
+    app.use("/lost-items", lostItemsRouter);
+    app.use("/panic-alerts", panicAlertsRouter);
+
+    // Health check endpoint
+    app.get("/health", (req, res) => {
+      res.status(200).json({
+        success: true,
+        message: "Panic Alerts Service is running",
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || "development",
+      });
+    });
   } catch (error) {
-    console.error('❌ Failed to initialize database connections:', error);
+    console.error("❌ Failed to initialize database connections:", error);
     process.exit(1);
   }
 }
 
 initializeApp();
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
-    message: 'Panic Alerts Service is running',
-    status: 'healthy',
+    message: "Panic Alerts Service is running",
+    status: "healthy",
     port: process.env.PORT || 8062,
     timestamp: new Date().toISOString(),
     availableRoutes: [
-      'GET /',
-      'GET /lost-items/getLostItems',
-      'PATCH /lost-items/updateProgressNotes/:id',
-      'POST /tourist/addLostItem',
-      'POST /panic-alerts',
-      'GET /panic-alerts',
-      'PUT /panic-alerts/:id/status'
-    ]
+      "GET /",
+      "GET /lost-items/getLostItems",
+      "PATCH /lost-items/updateProgressNotes/:id",
+      "POST /tourist/addLostItem",
+      "POST /panic-alerts",
+      "GET /panic-alerts",
+      "PUT /panic-alerts/:id/status",
+    ],
   });
 });
 
