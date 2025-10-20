@@ -14,6 +14,7 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const logsRoutes = require("./routes/logs");
 const databaseStatusRoutes = require("./routes/databaseStatusRoutes");
 const microservicesHealthRoutes = require("./routes/microservicesHealthRoutes");
+const thirdPartyDriverRoutes = require("./routes/thirdPartyDriverRoutes");
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/admin/analytics", analyticsRoutes);
 app.use("/api/admin/logs", logsRoutes);
 app.use("/api/admin/database", databaseStatusRoutes);
 app.use("/api/admin/microservices", microservicesHealthRoutes);
+app.use("/api/admin/thirdparty", thirdPartyDriverRoutes);
 
 // Welcome route
 app.get("/", (req, res) => {
@@ -73,6 +75,7 @@ app.get("/", (req, res) => {
       logs: "/api/admin/logs",
       database: "/api/admin/database",
       microservices: "/api/admin/microservices",
+      thirdparty: "/api/admin/thirdparty",
       health: "/health",
     },
   });
