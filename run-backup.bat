@@ -55,7 +55,7 @@ echo - Pooling Confirm Service: Port 8074
 echo - Finished Trips Service: Port 4015
 echo - Admin Subservice: Port 8070
 echo - Bank Transfer Service: Port 4021
-echo - Data Migration Service: Port 5009
+echo - Data Migration Service: Port varies
 echo - Location Sharing Service: Port 5008
 echo.
 echo Press any key to exit...
@@ -429,7 +429,4 @@ echo Dependencies installation completed!
 echo ========================================
 echo.
 echo You can now run option 2 to start all services.
-echo.
-echo Press any key to exit...
-pause >nul
 goto :eof

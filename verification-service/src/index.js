@@ -54,21 +54,16 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
   });
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000, // Return an error if connection takes longer than 2 seconds
 });
 
 // Test database connection
 pool.connect((err, client, release) => {
   if (err) {
-    console.error('❌ Error acquiring client from pool:', err.stack);
-    logger.error('Database connection failed:', err);
+    console.error("❌ Error acquiring client from pool:", err.stack);
+    logger.error("Database connection failed:", err);
   } else {
-    console.log('✅ Database connected successfully');
-    logger.info('Database connected successfully');
+    console.log("✅ Database connected successfully");
+    logger.info("Database connected successfully");
     release();
   }
 });
