@@ -230,4 +230,64 @@ router.get('/payed-trips/:id', async (req, res) => {
   }
 });
 
+// Get all payed finished trips for a specific driver by email
+router.get('/driver-trips/:driverEmail', async (req, res) => {
+  try {
+    const { driverEmail } = req.params;
+
+    // Validate input
+    if (!driverEmail) {
+      return res.status(400).json({ 
+        error: 'Missing required parameter: driverEmail' 
+      });
+    }
+
+    // Find all trips for the given driver email
+    const trips = await PayedFinishedTrip.find({ driver_email: driverEmail });
+
+    res.status(200).json({ 
+      message: 'Driver trips retrieved successfully',
+      driverEmail: driverEmail,
+      count: trips.length,
+      data: trips 
+    });
+  } catch (error) {
+    console.error('Error retrieving driver trips:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// Get all payed finished trips for a specific guide by email
+router.get('/guide-trips/:guideEmail', async (req, res) => {
+  try {
+    const { guideEmail } = req.params;
+
+    // Validate input
+    if (!guideEmail) {
+      return res.status(400).json({ 
+        error: 'Missing required parameter: guideEmail' 
+      });
+    }
+
+    // Find all trips for the given guide email
+    const trips = await PayedFinishedTrip.find({ guide_email: guideEmail });
+
+    res.status(200).json({ 
+      message: 'Guide trips retrieved successfully',
+      guideEmail: guideEmail,
+      count: trips.length,
+      data: trips 
+    });
+  } catch (error) {
+    console.error('Error retrieving guide trips:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
 module.exports = router;

@@ -100,4 +100,12 @@ router.get('/debug/trip/:tripId', poolingConfirmController.debugTripDetails);
  */
 router.post('/:tripId/complete-payment', poolingConfirmController.completeFullPayment);
 
+/**
+ * @route   GET /api/v1/pooling-confirm/initiated-trip/:tripId/summary
+ * @desc    Get initiated trip summary (days, cost per person, driver/guide status)
+ * @access  Private
+ * @params  tripId: string (UUID from initiated_trips collection)
+ */
+router.get('/initiated-trip/:tripId/summary', poolingConfirmController.getInitiatedTripSummary);
+
 module.exports = router;
