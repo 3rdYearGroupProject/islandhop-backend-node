@@ -11,8 +11,23 @@ const paymentRoutes = require('./routes/paymentRoutes');
 // Initialize Express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and start server only after successful connection
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('✅ Database connection established successfully');
+    
+    // Start the server only after database connection is ready
+    const PORT = process.env.PORT || 4021;
+    app.listen(PORT, () => {
+      console.log(`🚀 Bank Transfer Service running on port ${PORT}`);
+      console.log(`📊 Database: payment_service`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
 
 // Middleware
 const corsOptions = {
@@ -145,12 +160,5 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 4021;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Bank Transfer Service is running on port ${PORT}`);
-  console.log(`🌐 Server URL: http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`📁 File uploads directory: ${path.join(__dirname, 'uploads')}`);
-});
+// Start server after database connection is established
+startServer();

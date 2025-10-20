@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Location Sharing Service Automated Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Service is healthy\", function () {",
+              "    pm.response.to.have.jsonBody('status', 'ok');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Share Location (Create)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tripId\": \"trip123\",\n  \"userId\": \"userA\",\n  \"latitude\": 6.9271,\n  \"longitude\": 79.8612,\n  \"email\": \"userA@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/share-location",
+          "host": ["{{base_url}}"],
+          "path": ["share-location"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"Location created\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('message', 'Location shared and saved.');",
+              "    pm.expect(json.data).to.have.property('tripId', 'trip123');",
+              "    pm.expect(json.data).to.have.property('userId', 'userA');",
+              "    pm.expect(json.data).to.have.property('latitude', 6.9271);",
+              "    pm.expect(json.data).to.have.property('longitude', 79.8612);",
+              "    pm.expect(json.data).to.have.property('email', 'userA@example.com');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Share Location (Update Same Day)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tripId\": \"trip123\",\n  \"userId\": \"userA\",\n  \"latitude\": 6.9272,\n  \"longitude\": 79.8613,\n  \"email\": \"userA@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/share-location",
+          "host": ["{{base_url}}"],
+          "path": ["share-location"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Location updated\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('message', 'Location updated for today.');",
+              "    pm.expect(json.data).to.have.property('latitude', 6.9272);",
+              "    pm.expect(json.data).to.have.property('longitude', 79.8613);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Users At Location",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/users-at-location?latitude=6.9272&longitude=79.8613",
+          "host": ["{{base_url}}"],
+          "path": ["users-at-location"],
+          "query": [
+            { "key": "latitude", "value": "6.9272" },
+            { "key": "longitude", "value": "79.8613" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Users array present\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json).to.have.property('users');",
+              "    pm.expect(json.users).to.be.an('array');",
+              "    pm.expect(json.users.length).to.be.above(0);",
+              "    var user = json.users.find(u => u.userId === 'userA');",
+              "    pm.expect(user).to.exist;",
+              "    pm.expect(user).to.have.property('latitude');",
+              "    pm.expect(user).to.have.property('longitude');",
+              "    pm.expect(user).to.have.property('email', 'userA@example.com');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Share Location (Another User)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tripId\": \"trip123\",\n  \"userId\": \"userB\",\n  \"latitude\": 6.9272,\n  \"longitude\": 79.8613,\n  \"email\": \"userB@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/share-location",
+          "host": ["{{base_url}}"],
+          "path": ["share-location"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test(\"Location created for another user\", function () {",
+              "    var json = pm.response.json();",
+              "    pm.expect(json.data).to.have.property('userId', 'userB');",
+              "    pm.expect(json.data).to.have.property('email', 'userB@example.com');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5008/api/v1"
+    }
+  ]
+}

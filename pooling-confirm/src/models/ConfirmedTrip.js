@@ -34,6 +34,18 @@ const confirmedTripSchema = new mongoose.Schema({
     type: String,
     required: true
   }],
+  members: [{
+    userId: String,
+    email: String,
+    firstName: String,
+    lastName: String,
+    nationality: String,
+    languages: [String],
+    dob: String,
+    profileCompletion: Number,
+    joinedAt: Date,
+    isCreator: Boolean
+  }],
   
   // Trip Status
   status: {
@@ -143,6 +155,10 @@ const confirmedTripSchema = new mongoose.Schema({
       userId: String,
       userEmail: String,
       userName: String,
+      firstName: String,
+      lastName: String,
+      nationality: String,
+      languages: [String],
       
       // Upfront Payment (50%)
       upfrontPayment: {
@@ -237,7 +253,7 @@ const confirmedTripSchema = new mongoose.Schema({
     confirmedAt: Date,
     paymentStatus: {
       type: String,
-      enum: ['pending', 'paid', 'failed'],
+      enum: ['pending', 'partial', 'completed', 'paid', 'failed'],
       default: 'pending'
     }
   }],

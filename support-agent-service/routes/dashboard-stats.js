@@ -15,6 +15,7 @@ router.get('/', async (req, res) => {
         const unresolvedComplaints = await db.collection('complaints').countDocuments({ status: "not resolved" });
         const resolvedComplaints = totalComplaints - unresolvedComplaints;
         const lostItems = await db.collection('lost-items-log').countDocuments({ status: "not found" });
+        const panicAlerts = await db.collection('panic_alerts').countDocuments({ status: "not_resolved" });
 
         console.log(`Dashboard statistics - Total Complaints: ${totalComplaints}, Unresolved Complaints: ${unresolvedComplaints}`);
 
@@ -26,7 +27,8 @@ router.get('/', async (req, res) => {
                 totalComplaints,
                 unresolvedComplaints,
                 resolvedComplaints,
-                lostItems
+                lostItems,
+                panicAlerts
             }
         };
 

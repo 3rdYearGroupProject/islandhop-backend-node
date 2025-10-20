@@ -167,3 +167,57 @@
 [2025-10-20T05:14:10.236Z] Incoming request: GET /health
 [2025-10-20T05:15:21.848Z] Verification service started.
 [2025-10-20T05:15:40.513Z] Verification service started.
+[2025-10-18T18:47:51.544Z] Verification service started.
+2025-10-18T18:49:33.418Z - Fetched drivers with filters: {}
+2025-10-18T18:50:04.918Z - Fetched drivers with filters: {}
+2025-10-18T18:50:09.705Z - Fetched drivers with filters: {}
+[2025-10-19T03:52:45.702Z] Verification service started.
+[2025-10-19T04:03:16.156Z] Verification service started.
+2025-10-19T04:06:58.934Z - Fetched drivers with filters: {}
+2025-10-19T04:07:03.403Z - Fetched drivers with filters: {}
+2025-10-19T04:07:07.172Z - Fetched drivers with filters: {}
+2025-10-19T04:16:06.655Z - Fetched drivers with filters: {}
+2025-10-19T04:16:57.347Z - Fetched drivers with filters: {}
+2025-10-19T04:23:37.482Z - Fetched drivers with filters: {}
+2025-10-19T04:23:52.683Z - Fetched drivers with filters: {}
+[2025-10-19T04:40:38.592Z] Verification service started.
+[2025-10-19T04:40:39.569Z] Verification service started.
+[2025-10-19T04:40:41.278Z] Verification service started.
+2025-10-19T04:40:49.172Z - Fetched drivers with filters: {}
+[2025-10-19T04:44:18.012Z] Verification service started.
+[2025-10-19T04:44:57.339Z] Verification service started.
+[2025-10-19T04:50:20.064Z] Verification service started.
+[2025-10-19T04:50:36.444Z] Verification service started.
+[2025-10-19T04:51:33.078Z] Verification service started.
+[2025-10-19T04:51:34.982Z] Verification service started.
+[2025-10-19T04:51:49.034Z] Verification service started.
+[2025-10-19T04:53:00.098Z] Verification service started.
+[2025-10-19T04:53:21.085Z] Verification service started.
+2025-10-19T04:53:38.539Z - Fetched drivers with filters: {}
+2025-10-19T04:54:32.367Z - Fetched drivers with filters: {}
+2025-10-19T04:54:35.132Z - Fetched drivers with filters: {}
+[2025-10-19T04:57:51.436Z] Verification service started.
+[2025-10-19T04:58:05.638Z] Verification service started.
+[2025-10-19T04:58:19.466Z] Verification service started.
+[2025-10-19T04:58:38.012Z] Verification service started.
+2025-10-19T04:58:47.531Z - Successfully updated driver with ID: 3170bbc6-f7b5-46da-8a11-cb439b603c37
+2025-10-19T05:03:25.859Z - Fetched drivers with filters: {}
+2025-10-19T05:03:30.681Z - Successfully updated driver with ID: 3170bbc6-f7b5-46da-8a11-cb439b603c37
+2025-10-19T05:03:43.334Z - Fetched drivers with filters: {}
+2025-10-19T05:04:06.381Z - Successfully updated driver with ID: 76a9d885-0df8-47d1-9ffd-3428d2b14a4d
+2025-10-19T05:04:27.055Z - Fetched drivers with filters: {}
+2025-10-19T05:04:42.361Z - Fetched drivers with filters: {}
+2025-10-19T05:04:50.134Z - Successfully updated driver with ID: 3170bbc6-f7b5-46da-8a11-cb439b603c37
+2025-10-19T05:04:55.590Z - Fetched drivers with filters: {}
+2025-10-19T05:04:59.644Z - Fetched drivers with filters: {}
+[2025-10-18T12:14:40.691Z] Verification service started.
+[2025-10-18T12:14:50.679Z] Verification service started.
+[2025-10-18T12:18:04.825Z] Verification service started.
+[2025-10-18T13:13:28.393Z] Incoming request: GET /health
+[2025-10-18T13:13:32.411Z] Incoming request: GET /health
+[2025-10-18T20:39:43.016Z] Verification service started.
+[2025-10-18T20:40:34.181Z] Verification service started.
+[2025-10-19T01:38:24.332Z] Verification service started.
+[2025-10-19T10:50:57.538Z] Verification service started.
+[2025-10-19T10:58:16.158Z] Verification service started.
+2025-10-19T11:06:55.917Z - Fetched drivers with filters: {}
